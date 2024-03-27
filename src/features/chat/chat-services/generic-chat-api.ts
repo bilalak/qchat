@@ -57,7 +57,7 @@ export const GenericChatAPI = async (apiName: string, props: GenericChatAPIProps
     const content = messageResponse.choices[0]?.message?.content
     if (content === undefined || content === null) throw new Error("No content found in the response from OpenAI API.")
 
-    const translatedContent = await translator(content)
+    const translatedContent = await translator(content) //translator(content, logEntry.id)
     if (translatedContent.status !== "OK") throw translatedContent
     return translatedContent.response
   } catch (e) {

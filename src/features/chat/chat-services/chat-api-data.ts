@@ -8,8 +8,11 @@ import { AddChatMessage, FindTopChatMessagesForCurrentUser } from "./chat-messag
 import { PromptGPTProps } from "../models"
 import { UpdateChatThreadIfUncategorised } from "./chat-utility"
 import { DocumentSearchModel } from "./azure-cog-search/azure-cog-vector-store"
+import { translator } from "./chat-translator-service"
 
+// const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || `You are ${AI_NAME} who is a helpful AI Assistant.`
 const SYSTEM_PROMPT = `You are ${AI_NAME} who is a helpful AI Assistant.`
+
 const CONTEXT_PROMPT = ({ context, userQuestion }: { context: string; userQuestion: string }): string => {
   return `
 - Given the following extracted parts of a document, create a final answer. \n
@@ -45,10 +48,7 @@ export const ChatAPIData = async (props: PromptGPTProps): Promise<Response> => {
 
     const response = await openAI.chat.completions.create({
       messages: [
-        {
-          role: "system",
-          content: SYSTEM_PROMPT,
-        },
+        { role: "system", content: SYSTEM_PROMPT },
         ...historyResponse.response,
         {
           role: "user",
@@ -64,20 +64,29 @@ export const ChatAPIData = async (props: PromptGPTProps): Promise<Response> => {
 
     const stream = OpenAIStream(response, {
       async onCompletion(completion) {
-        await AddChatMessage(chatThread.id, {
-          content: updatedLastHumanMessage.content,
-          role: "user",
-        })
-        await AddChatMessage(
-          chatThread.id,
-          {
+        try {
+          const translatedCompletion = await translator(completion)
+          if (translatedCompletion.status !== "OK") throw translatedCompletion
+
+          console.log("the translated chat response is: ", translatedCompletion.response)
+
+          await AddChatMessage(chatThread.id, {
+            content: updatedLastHumanMessage.content,
+            role: "user",
+          })
+          await AddChatMessage(chatThread.id, {
+            originalCompletion: completion,
+            content: translatedCompletion.response,
+            role: "assistant",
+          })
+        } catch (error) {
+          console.error({ error })
+          await AddChatMessage(chatThread.id, {
             content: completion,
             role: "assistant",
-          },
-          context
-        )
-
-        await UpdateChatThreadIfUncategorised(chatThread, completion)
+          })
+          await UpdateChatThreadIfUncategorised(chatThread, completion)
+        }
       },
     })
 

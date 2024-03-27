@@ -5,6 +5,32 @@ export function getBooleanEnv(variable: string): boolean {
   return process.env[variable]?.toLowerCase() === "true"
 }
 
+// export const extractCitations = (context: string): { text: string; citations: string[] } => {
+//   const citationRegex = /{% citation items=(.*?)%}/g
+//   const citations: string[] = []
+//   const cleanText = context.replace(citationRegex, (_, citation) => {
+//     citations.push(citation.trim())
+//     return ""
+//   })
+//   console.log("citations are: ", citations)
+//   console.log("text is:", cleanText.trim())
+//   return { text: cleanText.trim(), citations }
+// }
+
+export const extractCitations = (context: string): { text: string; citations: string[] } => {
+  const citationRegex = /({% citation items=.*?)%}/g
+  const citations: string[] = []
+  let cleanText = context.replace(citationRegex, (match, citation) => {
+    citations.push(citation.trim())
+    return match // Return the matched pattern along with the citation
+  })
+  console.log("citations are: ", citations)
+  // Clean the text from citation patterns
+  cleanText = cleanText.replace(/{% citation items=.*?%}/g, "").trim()
+  console.log("text is:", cleanText)
+  return { text: cleanText, citations }
+}
+
 export async function translator(input: string): ServerActionResponseAsync<string> {
   if (!getBooleanEnv("NEXT_PUBLIC_FEATURE_TRANSLATOR") || typeof input !== "string")
     return { status: "OK", response: input }
@@ -13,26 +39,31 @@ export async function translator(input: string): ServerActionResponseAsync<strin
   const codeBlocks: string[] = []
   let i = 0
 
-  const processedText = input.replace(codeBlockPattern, match => {
+  input = input.replace(codeBlockPattern, match => {
     codeBlocks.push(match)
     return `__codeblock_${i++}__`
   })
 
+  const { text: cleanedContext, citations } = extractCitations(input)
+  const textWithoutCitations = cleanedContext.trim()
+
   try {
-    const translatedTexts = await translateFunction([{ text: processedText.toLowerCase() }], "en-GB", "en-US")
-    let result = translatedTexts.length <= 0 ? processedText : revertCase(processedText, translatedTexts[0])
+    const translatedTexts = await translateFunction([{ text: textWithoutCitations.toLowerCase() }], "en-GB", "en-US")
+    let result =
+      translatedTexts.length <= 0 ? textWithoutCitations : revertCase(textWithoutCitations, translatedTexts[0])
 
     codeBlocks.forEach((codeBlock, index) => {
       result = result.replace(`__codeblock_${index}__`, codeBlock)
     })
 
-    return { status: "OK", response: result }
+    const responseWithCitation = `${result}\n\n\n${citations.join("\n")}`
+
+    return { status: "OK", response: responseWithCitation }
   } catch (error) {
     console.error(error)
     return { status: "ERROR", errors: [{ message: "Translation failed" }] }
   }
 }
-
 async function translateFunction(
   inputText: { text: string }[],
   translatedTo: string,

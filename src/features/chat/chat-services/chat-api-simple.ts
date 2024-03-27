@@ -80,15 +80,18 @@ export const ChatAPISimple = async (props: PromptGPTProps): Promise<Response> =>
           const translatedCompletion = await translator(completion)
           if (translatedCompletion.status !== "OK") throw translatedCompletion
           await AddChatMessage(chatThread.id, {
+            originalCompletion: completion,
             content: translatedCompletion.response,
             role: "assistant",
           })
           await UpdateChatThreadIfUncategorised(chatThread, translatedCompletion.response)
-        } catch (_translationError) {
+        } catch (error) {
+          console.error({ error })
           await AddChatMessage(chatThread.id, {
             content: completion,
             role: "assistant",
           })
+          await UpdateChatThreadIfUncategorised(chatThread, completion)
         }
       },
     })

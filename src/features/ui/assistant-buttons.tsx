@@ -2,13 +2,16 @@
 
 import React from "react"
 import { Button } from "./button"
-import { CheckIcon, ClipboardIcon, ThumbsUp, ThumbsDown } from "lucide-react"
+import { CheckIcon, ClipboardIcon, ThumbsUp, ThumbsDown, Languages } from "lucide-react"
 import { useWindowSize } from "./windowsize"
+import { TooltipProvider } from "@/features/ui/tooltip-provider"
+import * as Tooltip from "@radix-ui/react-tooltip"
 
 interface AssistantButtonsProps {
   isIconChecked: boolean
   thumbsUpClicked: boolean
   thumbsDownClicked: boolean
+  handleTranslationIconClick: () => void
   handleCopyButton: () => void
   handleThumbsUpClick: () => void
   handleThumbsDownClick: () => void
@@ -18,6 +21,7 @@ export const AssistantButtons: React.FC<AssistantButtonsProps> = ({
   isIconChecked,
   thumbsUpClicked,
   thumbsDownClicked,
+  handleTranslationIconClick,
   handleCopyButton,
   handleThumbsUpClick,
   handleThumbsDownClick,
@@ -68,6 +72,24 @@ export const AssistantButtons: React.FC<AssistantButtonsProps> = ({
       >
         {thumbsDownClicked ? <CheckIcon size={iconSize} /> : <ThumbsDown size={iconSize} />}
       </Button>
+      <TooltipProvider>
+        <Tooltip.Root>
+          <Tooltip.Trigger>
+            <span onClick={handleTranslationIconClick} className={buttonClass}>
+              <Languages />
+            </span>
+          </Tooltip.Trigger>
+          <Tooltip.Content
+            side="bottom"
+            className="bg-primary-foreground text-foreground rounded-md p-2 text-sm shadow-lg"
+          >
+            <p>
+              <strong>Translator:</strong> By clicking on this icon, you are requesting to traslate all words in the
+              QChat response into Australian English.
+            </p>
+          </Tooltip.Content>
+        </Tooltip.Root>
+      </TooltipProvider>
     </div>
   )
 }

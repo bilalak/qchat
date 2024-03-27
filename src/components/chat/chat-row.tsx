@@ -49,6 +49,11 @@ export const ChatRow: FC<ChatRowProps> = props => {
         setThumbsUpClicked(false)
         setThumbsDownClicked(false)
         break
+      case "TranslationIcon":
+        setThumbsUpClicked(false)
+        setThumbsDownClicked(false)
+        setIsIconChecked(false)
+        break
       default:
         break
     }
@@ -66,6 +71,10 @@ export const ChatRow: FC<ChatRowProps> = props => {
         setFeedbackMessage("Something happened and the message has not been copied.")
       })
       .finally(() => setTimeout(() => setFeedbackMessage(""), 2000))
+  }
+
+  const handleTranslationIconClick = () => {
+    window.location.reload()
   }
 
   const handleThumbsUpClick = (): void => {
@@ -138,6 +147,7 @@ export const ChatRow: FC<ChatRowProps> = props => {
             isIconChecked={isIconChecked}
             thumbsUpClicked={thumbsUpClicked}
             thumbsDownClicked={thumbsDownClicked}
+            handleTranslationIconClick={handleTranslationIconClick}
             handleCopyButton={handleCopyButton}
             handleThumbsUpClick={handleThumbsUpClick}
             handleThumbsDownClick={handleThumbsDownClick}
