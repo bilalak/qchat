@@ -72,12 +72,14 @@ export const ChatAPISimple = async (props: PromptGPTProps): Promise<Response> =>
           const translatedCompletion = await translator(completion)
           if (translatedCompletion.status !== "OK") throw translatedCompletion
           addedMessage = await AddChatMessage(chatThread.id, {
+            originalCompletion: completion,
             content: translatedCompletion.response,
             role: "assistant",
           })
 
           await UpdateChatThreadIfUncategorised(chatThread, translatedCompletion.response)
-        } catch (_translationError) {
+        } catch (error) {
+          console.error({ error })
           addedMessage = await AddChatMessage(chatThread.id, {
             content: completion,
             role: "assistant",
@@ -85,7 +87,11 @@ export const ChatAPISimple = async (props: PromptGPTProps): Promise<Response> =>
         }
 
         if (addedMessage?.status === "OK") {
-          const item: DataItem = { message: completion, id: addedMessage.response.id }
+          const item: DataItem = {
+            message: completion,
+            translated: addedMessage.response.content,
+            id: addedMessage.response.id,
+          }
           data.append(item)
         }
       },
@@ -115,5 +121,6 @@ export const ChatAPISimple = async (props: PromptGPTProps): Promise<Response> =>
 
 export type DataItem = JSONValue & {
   message: string
+  translated: string
   id: string
 }

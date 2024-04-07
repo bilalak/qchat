@@ -151,7 +151,7 @@ export const UpsertChatMessage = async (
 
 export const AddChatMessage = async (
   chatThreadId: string,
-  message: ChatCompletionMessage,
+  message: ChatCompletionMessage & { originalCompletion?: string },
   citations: string = ""
 ): ServerActionResponseAsync<ChatMessageModel> => {
   try {
