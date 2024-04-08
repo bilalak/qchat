@@ -106,7 +106,7 @@ export const FindChatMessageForCurrentUser = async (
 
 export const UpsertChatMessage = async (
   chatThreadId: string,
-  message: ChatCompletionMessage,
+  message: ChatCompletionMessageTranslated,
   citations: string = ""
 ): ServerActionResponseAsync<ChatMessageModel> => {
   try {
@@ -117,7 +117,7 @@ export const UpsertChatMessage = async (
       type: ChatRecordType.Message,
       isDeleted: false,
       content: message.content ?? "",
-      originalCompletion: message.content ?? "",
+      originalCompletion: message.originalCompletion ?? "",
       role: mapChatCompletionRoleToChatRole(message.role),
       chatThreadId,
       userId,
@@ -164,7 +164,7 @@ export const AddChatMessage = async (
       type: ChatRecordType.Message,
       isDeleted: false,
       content: message.content ?? "",
-      originalCompletion: message.content ?? "",
+      originalCompletion: message.originalCompletion ?? "",
       role: mapChatCompletionRoleToChatRole(message.role),
       chatThreadId,
       userId,
