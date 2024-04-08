@@ -1,17 +1,17 @@
 import { OpenAIStream, StreamingTextResponse, experimental_StreamData } from "ai"
 import { Completion } from "openai/resources/completions"
 
-import { getTenantId, userHashedId } from "@/features/auth/helpers"
-import { PromptGPTProps } from "@/features/chat/models"
-import { OpenAIInstance } from "@/features/common/services/open-ai"
-import { AI_NAME } from "@/features/theme/theme-config"
-
 import { AzureCogDocumentIndex, similaritySearchVectorWithScore } from "./azure-cog-search/azure-cog-vector-store"
 import { DocumentSearchModel } from "./azure-cog-search/azure-cog-vector-store"
 import { DataItem } from "./chat-api-simple"
 import { AddChatMessage, FindTopChatMessagesForCurrentUser } from "./chat-message-service"
 import { InitChatSession } from "./chat-thread-service"
 import { UpdateChatThreadIfUncategorised } from "./chat-utility"
+
+import { getTenantId, userHashedId } from "@/features/auth/helpers"
+import { PromptGPTProps } from "@/features/chat/models"
+import { OpenAIInstance } from "@/features/common/services/open-ai"
+import { AI_NAME } from "@/features/theme/theme-config"
 
 const SYSTEM_PROMPT = `You are ${AI_NAME} who is a helpful AI Assistant.`
 const CONTEXT_PROMPT = ({ context, userQuestion }: { context: string; userQuestion: string }): string => {
@@ -70,38 +70,35 @@ export const ChatAPIData = async (props: PromptGPTProps): Promise<Response> => {
 
     const stream = OpenAIStream(response as AsyncIterable<Completion>, {
       async onCompletion(completion) {
-        let addedMessage
-        try {
-          await AddChatMessage(chatThread.id, {
-            content: updatedLastHumanMessage.content,
-            role: "user",
-          })
+        // TODO: https://dis-qgcdg.atlassian.net/browse/QGGPT-437
 
-          addedMessage = await AddChatMessage(
-            chatThread.id,
-            {
-              content: completion,
-              role: "assistant",
-            },
-            context
-          )
-          await UpdateChatThreadIfUncategorised(chatThread, completion)
-        } catch (error) {
-          console.error({ error })
-          addedMessage = await AddChatMessage(chatThread.id, {
+        const addUserMessageResponse = await AddChatMessage(chatThread.id, {
+          content: updatedLastHumanMessage.content,
+          role: "user",
+        })
+
+        if (addUserMessageResponse?.status !== "OK") {
+          throw addUserMessageResponse.errors
+        }
+
+        const addAssistantMessageResponse = await AddChatMessage(
+          chatThread.id,
+          {
             content: completion,
             role: "assistant",
-          })
-        }
-        if (addedMessage?.status === "OK") {
-          const item: DataItem = {
-            message: completion,
-            id: addedMessage.response.id,
-            translated: addedMessage.response.content,
-          }
-          data.append(item)
-        }
+          },
+          context
+        )
 
+        if (addAssistantMessageResponse?.status !== "OK") {
+          throw addAssistantMessageResponse.errors
+        }
+        const item: DataItem = {
+          message: completion,
+          id: addAssistantMessageResponse.response.id,
+          translated: addAssistantMessageResponse.response.content,
+        }
+        data.append(item)
         await UpdateChatThreadIfUncategorised(chatThread, completion)
       },
       async onFinal() {
