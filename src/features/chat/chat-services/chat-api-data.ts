@@ -13,9 +13,6 @@ import { AddChatMessage, FindTopChatMessagesForCurrentUser } from "./chat-messag
 import { InitChatSession } from "./chat-thread-service"
 import { UpdateChatThreadIfUncategorised } from "./chat-utility"
 
-// import { translator } from "./chat-translator-service"
-
-// const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || `You are ${AI_NAME} who is a helpful AI
 const SYSTEM_PROMPT = `You are ${AI_NAME} who is a helpful AI Assistant.`
 const CONTEXT_PROMPT = ({ context, userQuestion }: { context: string; userQuestion: string }): string => {
   return `
@@ -75,9 +72,6 @@ export const ChatAPIData = async (props: PromptGPTProps): Promise<Response> => {
       async onCompletion(completion) {
         let addedMessage
         try {
-          // const translatedCompletion = await translator(completion) // remove translation for now due to the citations
-          // if (translatedCompletion.status !== "OK") throw translatedCompletion
-
           await AddChatMessage(chatThread.id, {
             content: updatedLastHumanMessage.content,
             role: "user",
@@ -86,14 +80,11 @@ export const ChatAPIData = async (props: PromptGPTProps): Promise<Response> => {
           addedMessage = await AddChatMessage(
             chatThread.id,
             {
-              // originalCompletion: completion,
               content: completion,
-              // content: translatedCompletion.response,
               role: "assistant",
             },
             context
           )
-          // await UpdateChatThreadIfUncategorised(chatThread, translatedCompletion.response)
           await UpdateChatThreadIfUncategorised(chatThread, completion)
         } catch (error) {
           console.error({ error })
