@@ -12,6 +12,8 @@ export const transformCosmosToAIModel = (chats: Array<ChatMessageModel>): Array<
       feedback: chat.feedback,
       sentiment: chat.sentiment,
       reason: chat.reason,
+      contentFilterResult: chat.contentFilterResult,
+      contentFilterCount: chat.contentFilterCount,
     }
   })
 }

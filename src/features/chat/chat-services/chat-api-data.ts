@@ -1,15 +1,22 @@
 import { OpenAIStream, StreamingTextResponse, experimental_StreamData } from "ai"
+import { APIError } from "openai"
 import { Completion } from "openai/resources/completions"
 
 import { AzureCogDocumentIndex, similaritySearchVectorWithScore } from "./azure-cog-search/azure-cog-vector-store"
 import { DocumentSearchModel } from "./azure-cog-search/azure-cog-vector-store"
-import { DataItem } from "./chat-api-simple"
-import { AddChatMessage, FindTopChatMessagesForCurrentUser } from "./chat-message-service"
+import {
+  DataItem,
+  buildAssistantChatMessage,
+  makeContentFilterResponse,
+  maxSafetyTriggersAllowed,
+} from "./chat-api-simple"
+import { FindTopChatMessagesForCurrentUser, UpsertChatMessage } from "./chat-message-service"
 import { InitChatSession } from "./chat-thread-service"
 import { UpdateChatThreadIfUncategorised } from "./chat-utility"
 
 import { getTenantId, userHashedId } from "@/features/auth/helpers"
-import { PromptGPTProps } from "@/features/chat/models"
+import { ContentFilterResult, CreateCompletionMessage, PromptGPTProps } from "@/features/chat/models"
+import { mapOpenAIChatMessages } from "@/features/common/mapping-helper"
 import { OpenAIInstance } from "@/features/common/services/open-ai"
 import { AI_NAME } from "@/features/theme/theme-config"
 
@@ -38,6 +45,21 @@ export const ChatAPIData = async (props: PromptGPTProps): Promise<Response> => {
     const historyResponse = await FindTopChatMessagesForCurrentUser(chatThread.id)
     if (historyResponse.status !== "OK") throw historyResponse
 
+    let contentFilterCount = Math.max(
+      ...[...historyResponse.response.map(message => message.contentFilterCount ?? 0), 0]
+    )
+
+    const addMessageResponse = await UpsertChatMessage(
+      chatThread.id,
+      {
+        content: updatedLastHumanMessage.content,
+        role: "user",
+        contentFilterCount,
+      },
+      updatedLastHumanMessage.id
+    )
+    if (addMessageResponse.status !== "OK") throw addMessageResponse
+
     const relevantDocuments = await findRelevantDocuments(updatedLastHumanMessage.content, chatThread.id)
     const context = relevantDocuments
       .map((result, index) => {
@@ -47,59 +69,73 @@ export const ChatAPIData = async (props: PromptGPTProps): Promise<Response> => {
       })
       .join("\n------\n")
 
-    const response = await openAI.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: SYSTEM_PROMPT,
-        },
-        ...historyResponse.response,
-        {
-          role: "user",
-          content: CONTEXT_PROMPT({
-            context,
-            userQuestion: updatedLastHumanMessage.content,
-          }),
-        },
-      ],
-      model: process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
-      stream: true,
-    })
-
     const data = new experimental_StreamData()
+
+    let response
+    try {
+      response = await openAI.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: SYSTEM_PROMPT,
+          },
+          ...mapOpenAIChatMessages(historyResponse.response),
+          {
+            role: "user",
+            content: CONTEXT_PROMPT({
+              context,
+              userQuestion: updatedLastHumanMessage.content,
+            }),
+          },
+        ],
+        model: process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
+        stream: true,
+      })
+    } catch (exception) {
+      if (exception instanceof APIError && exception.status === 400 && exception.code === "content_filter") {
+        const contentFilterResult = exception.error as ContentFilterResult
+        contentFilterCount++
+
+        await UpsertChatMessage(
+          chatThread.id,
+          {
+            ...addMessageResponse.response,
+            contentFilterResult,
+            contentFilterCount,
+          },
+          updatedLastHumanMessage.id
+        )
+
+        data.append({
+          id: addMessageResponse.response.id,
+          content: addMessageResponse.response.content,
+          contentFilterResult,
+          contentFilterCount,
+        } as DataItem)
+
+        response = makeContentFilterResponse(contentFilterCount >= maxSafetyTriggersAllowed)
+      } else {
+        throw exception
+      }
+    }
 
     const stream = OpenAIStream(response as AsyncIterable<Completion>, {
       async onCompletion(completion) {
         // TODO: https://dis-qgcdg.atlassian.net/browse/QGGPT-437
+        const message = buildAssistantChatMessage(completion, "")
 
-        const addUserMessageResponse = await AddChatMessage(chatThread.id, {
-          content: updatedLastHumanMessage.content,
-          role: "user",
-        })
-
-        if (addUserMessageResponse?.status !== "OK") {
-          throw addUserMessageResponse.errors
+        const completionMessage = updatedLastHumanMessage as typeof updatedLastHumanMessage & CreateCompletionMessage
+        const addedMessage = await UpsertChatMessage(chatThread.id, message, completionMessage.completion_id)
+        if (addedMessage?.status !== "OK") {
+          throw addedMessage.errors
         }
 
-        const addAssistantMessageResponse = await AddChatMessage(
-          chatThread.id,
-          {
-            content: completion,
-            role: "assistant",
-          },
-          context
-        )
+        data.append({
+          id: addedMessage.response.id,
+          content: addedMessage.response.content,
+        } as DataItem)
 
-        if (addAssistantMessageResponse?.status !== "OK") {
-          throw addAssistantMessageResponse.errors
-        }
-        const item: DataItem = {
-          message: completion,
-          id: addAssistantMessageResponse.response.id,
-          translated: addAssistantMessageResponse.response.content,
-        }
-        data.append(item)
-        await UpdateChatThreadIfUncategorised(chatThread, completion)
+        message.content && (await UpdateChatThreadIfUncategorised(chatThread, message.content))
       },
       async onFinal() {
         await data.close()

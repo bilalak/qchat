@@ -1,8 +1,10 @@
-import { JSONValue, OpenAIStream, StreamingTextResponse, experimental_StreamData } from "ai"
+import { JSONValue, Message, OpenAIStream, StreamingTextResponse, experimental_StreamData } from "ai"
+import { APIError } from "openai"
+import { ChatCompletionChunk } from "openai/resources"
 import { Completion } from "openai/resources/completions"
 
 import {
-  AddChatMessage,
+  UpsertChatMessage,
   ChatCompletionMessageTranslated,
   FindTopChatMessagesForCurrentUser,
 } from "./chat-message-service"
@@ -11,7 +13,8 @@ import { translator } from "./chat-translator-service"
 import { UpdateChatThreadIfUncategorised } from "./chat-utility"
 
 import { userSession } from "@/features/auth/helpers"
-import { PromptGPTProps, ChatRole } from "@/features/chat/models"
+import { PromptGPTProps, ChatRole, CreateCompletionMessage, ContentFilterResult } from "@/features/chat/models"
+import { mapOpenAIChatMessages } from "@/features/common/mapping-helper"
 import { OpenAIInstance } from "@/features/common/services/open-ai"
 
 async function buildUserContextPrompt(): Promise<string> {
@@ -51,22 +54,63 @@ export const ChatAPISimple = async (props: PromptGPTProps): Promise<Response> =>
     const { chatThread, updatedLastHumanMessage } = chatResponse.response
     const openAI = OpenAIInstance()
 
-    const addMessageResponse = await AddChatMessage(chatThread.id, {
-      content: updatedLastHumanMessage.content,
-      role: "user",
-    })
-    if (addMessageResponse.status !== "OK") throw addMessageResponse
-
     const historyResponse = await FindTopChatMessagesForCurrentUser(chatThread.id)
     if (historyResponse.status !== "OK") throw historyResponse
 
-    const response = await openAI.chat.completions.create({
-      messages: [{ role: ChatRole.System, content: metaPrompt }, ...historyResponse.response],
-      model: process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
-      stream: true,
-    })
+    let contentFilterCount = Math.max(
+      ...[...historyResponse.response.map(message => message.contentFilterCount ?? 0), 0]
+    )
+
+    const addMessageResponse = await UpsertChatMessage(
+      chatThread.id,
+      {
+        content: updatedLastHumanMessage.content,
+        role: "user",
+        contentFilterCount,
+      },
+      updatedLastHumanMessage.id
+    )
+    if (addMessageResponse.status !== "OK") throw addMessageResponse
 
     const data = new experimental_StreamData()
+
+    let response
+    try {
+      response = await openAI.chat.completions.create({
+        messages: [
+          { role: ChatRole.System, content: metaPrompt },
+          ...mapOpenAIChatMessages([...historyResponse.response, addMessageResponse.response]),
+        ],
+        model: process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
+        stream: true,
+      })
+    } catch (exception) {
+      if (exception instanceof APIError && exception.status === 400 && exception.code === "content_filter") {
+        const contentFilterResult = exception.error as ContentFilterResult
+        contentFilterCount++
+
+        await UpsertChatMessage(
+          chatThread.id,
+          {
+            ...addMessageResponse.response,
+            contentFilterResult,
+            contentFilterCount,
+          },
+          updatedLastHumanMessage.id
+        )
+
+        data.append({
+          id: addMessageResponse.response.id,
+          content: addMessageResponse.response.content,
+          contentFilterResult,
+          contentFilterCount,
+        } as DataItem)
+
+        response = makeContentFilterResponse(contentFilterCount >= maxSafetyTriggersAllowed)
+      } else {
+        throw exception
+      }
+    }
 
     const stream = OpenAIStream(response as AsyncIterable<Completion>, {
       async onCompletion(completion: string) {
@@ -76,17 +120,17 @@ export const ChatAPISimple = async (props: PromptGPTProps): Promise<Response> =>
           translatedCompletion.status === "OK" ? translatedCompletion.response : ""
         )
 
-        const addedMessage = await AddChatMessage(chatThread.id, message)
+        const completionMessage = updatedLastHumanMessage as typeof updatedLastHumanMessage & CreateCompletionMessage
+        const addedMessage = await UpsertChatMessage(chatThread.id, message, completionMessage.completion_id)
         if (addedMessage?.status !== "OK") {
           throw addedMessage.errors
         }
 
-        const item: DataItem = {
-          message: completion,
-          translated: addedMessage.response.content,
+        data.append({
           id: addedMessage.response.id,
-        }
-        data.append(item)
+          content: addedMessage.response.content,
+        } as DataItem)
+
         message.content && (await UpdateChatThreadIfUncategorised(chatThread, message.content))
       },
       async onFinal() {
@@ -113,13 +157,13 @@ export const ChatAPISimple = async (props: PromptGPTProps): Promise<Response> =>
   }
 }
 
-export type DataItem = JSONValue & {
-  message: string
-  translated: string
-  id: string
-}
+export type DataItem = JSONValue &
+  Message & {
+    contentFilterResult?: ContentFilterResult
+    contentFilterCount: number
+  }
 
-const buildAssistantChatMessage = (completion: string, translate: string): ChatCompletionMessageTranslated => {
+export const buildAssistantChatMessage = (completion: string, translate: string): ChatCompletionMessageTranslated => {
   if (translate)
     return {
       originalCompletion: completion,
@@ -129,5 +173,27 @@ const buildAssistantChatMessage = (completion: string, translate: string): ChatC
   return {
     content: completion,
     role: "assistant",
+  }
+}
+
+export const maxSafetyTriggersAllowed = 3
+
+export async function* makeContentFilterResponse(lockChatThread: boolean): AsyncGenerator<ChatCompletionChunk> {
+  yield {
+    choices: [
+      {
+        delta: {
+          content: lockChatThread
+            ? "I'm sorry, but this chat is now locked after multiple safety concerns. We can't proceed with more messages. Please start a new chat."
+            : "I'm sorry I wasn't able to respond to that message, could you try rephrasing, using different language or starting a new chat if this persists.",
+        },
+        finish_reason: "stop",
+        index: 0,
+      },
+    ],
+    created: Math.round(Date.now() / 1000),
+    id: `chatcmpl-${Date.now()}`,
+    model: process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
+    object: "chat.completion.chunk",
   }
 }

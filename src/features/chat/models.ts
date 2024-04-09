@@ -65,7 +65,18 @@ export interface ChatMessageModel {
   sentiment: ChatSentiment
   reason: string
   systemPrompt: string
+  /** @deprecated Legacy contentSafetyWarning - use contentSafety instead */
   contentSafetyWarning: string
+  contentFilterCount?: number
+  contentFilterResult?: ContentFilterResult
+}
+
+export interface ContentFilterResult {
+  message: string
+  param: string
+  code: string
+  status: number
+  innererror: unknown
 }
 
 export interface ChatThreadModel {
@@ -133,4 +144,8 @@ export interface ChatUtilityModel {
   content: string
   role: ChatRole
   type: ChatRecordType.Utility
+}
+
+export type CreateCompletionMessage = {
+  completion_id: string
 }
