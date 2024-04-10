@@ -76,14 +76,20 @@ export const ChatAPISimple = async (props: PromptGPTProps): Promise<Response> =>
 
     let response
     try {
-      response = await openAI.chat.completions.create({
-        messages: [
-          { role: ChatRole.System, content: metaPrompt },
-          ...mapOpenAIChatMessages([...historyResponse.response, addMessageResponse.response]),
-        ],
-        model: process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
-        stream: true,
-      })
+      response =
+        contentFilterCount >= maxSafetyTriggersAllowed
+          ? makeContentFilterResponse(true)
+          : await openAI.chat.completions.create({
+            messages: [
+              {
+                role: ChatRole.System,
+                content: metaPrompt,
+              },
+              ...mapOpenAIChatMessages([...historyResponse.response, addMessageResponse.response]),
+            ],
+            model: process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
+            stream: true,
+          })
     } catch (exception) {
       if (exception instanceof APIError && exception.status === 400 && exception.code === "content_filter") {
         const contentFilterResult = exception.error as ContentFilterResult
