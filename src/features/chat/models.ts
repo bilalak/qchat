@@ -65,15 +65,7 @@ export interface ChatMessageModel {
   sentiment: ChatSentiment
   reason: string
   systemPrompt: string
-  contentFilterResult?: ContentFilterResult
-}
-
-export interface ContentFilterResult {
-  message: string
-  param: string
-  code: string
-  status: number
-  innererror: unknown
+  contentFilterResult?: unknown
 }
 
 export interface ChatThreadModel {
@@ -144,5 +136,5 @@ export interface ChatUtilityModel {
 }
 
 export type CreateCompletionMessage = {
-  completion_id: string
+  completionId: string
 }

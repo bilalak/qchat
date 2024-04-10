@@ -1,8 +1,16 @@
-import { ChatAPIData } from "./chat-api-data"
-import { ChatAPISimple } from "./chat-api-simple"
-import { InitChatSession } from "./chat-thread-service"
+import { ChatCompletionMessageParam } from "openai/resources"
 
-import { PromptGPTProps } from "@/features/chat/models"
+import { ChatAPI } from "./chat-api"
+import {
+  buildDataChatContextPrompt,
+  buildDataChatSystemPrompt,
+  buildSimpleChatSystemPrompt,
+  findRelevantDocuments,
+} from "./chat-api-helper"
+import { InitChatSession } from "./chat-thread-service"
+import { translator } from "./chat-translator-service"
+
+import { ChatRole, PromptGPTProps } from "@/features/chat/models"
 
 const dataChatTypes = ["data", "mssql", "audio"]
 
@@ -11,10 +19,36 @@ export const ChatAPIEntry = async (props: PromptGPTProps): Promise<Response> => 
     const chatResponse = await InitChatSession(props)
     if (chatResponse.status !== "OK") throw chatResponse
 
+    const { chatThread, updatedLastHumanMessage } = chatResponse.response
+
     if (props.chatType === "simple" || !dataChatTypes.includes(props.chatType)) {
-      return await ChatAPISimple(chatResponse.response)
+      const userMessage: ChatCompletionMessageParam = {
+        role: ChatRole.System,
+        content: updatedLastHumanMessage.content,
+      }
+
+      const systemPrompt = await buildSimpleChatSystemPrompt()
+      return await ChatAPI(systemPrompt, userMessage, chatThread, updatedLastHumanMessage, translate)
     } else {
-      return await ChatAPIData(chatResponse.response)
+      const relevantDocuments = await findRelevantDocuments(updatedLastHumanMessage.content, chatThread.id)
+      const context = relevantDocuments
+        .map((result, index) => {
+          const content = result.pageContent.replace(/(\r\n|\n|\r)/gm, "")
+          const context = `[${index}]. file name: ${result.metadata} \n file id: ${result.id} \n order: ${result.order} \n ${content}`
+          return context
+        })
+        .join("\n------\n")
+
+      const userMessage: ChatCompletionMessageParam = {
+        role: ChatRole.System,
+        content: buildDataChatContextPrompt({
+          context,
+          userQuestion: updatedLastHumanMessage.content,
+        }),
+      }
+
+      const systemPrompt = buildDataChatSystemPrompt()
+      return await ChatAPI(systemPrompt, userMessage, chatThread, updatedLastHumanMessage, translateDisabled)
     }
   } catch (error) {
     const errorResponse = error instanceof Error ? error.message : "An unknown error occurred."
@@ -26,3 +60,11 @@ export const ChatAPIEntry = async (props: PromptGPTProps): Promise<Response> => 
     })
   }
 }
+
+const translate = async (input: string): Promise<string> => {
+  const translatedCompletion = await translator(input)
+  return translatedCompletion.status === "OK" ? translatedCompletion.response : ""
+}
+
+// TODO: https://dis-qgcdg.atlassian.net/browse/QGGPT-437
+const translateDisabled = async (input: string): Promise<string> => await Promise.resolve(input)

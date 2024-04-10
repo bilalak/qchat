@@ -140,7 +140,7 @@ export const ChatProvider: FC<Prop> = props => {
     await response.append(
       {
         id: uniqueId(),
-        completion_id: nextCompletionId,
+        completionId: nextCompletionId,
         content: response.input,
         role: "user",
       } as CreateMessage & CreateCompletionMessage,

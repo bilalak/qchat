@@ -4,13 +4,7 @@ import { SqlQuerySpec } from "@azure/cosmos"
 import { ChatCompletionMessage } from "openai/resources"
 
 import { getTenantId, userHashedId } from "@/features/auth/helpers"
-import {
-  ChatMessageModel,
-  ChatRecordType,
-  ChatSentiment,
-  ContentFilterResult,
-  FeedbackType,
-} from "@/features/chat/models"
+import { ChatMessageModel, ChatRecordType, ChatSentiment, FeedbackType } from "@/features/chat/models"
 import { mapChatCompletionRoleToChatRole } from "@/features/common/mapping-helper"
 import { ServerActionResponseAsync } from "@/features/common/server-action-response"
 import { HistoryContainer } from "@/features/common/services/cosmos"
@@ -112,7 +106,7 @@ export const FindChatMessageForCurrentUser = async (
 
 export type ChatCompletionMessageTranslated = ChatCompletionMessage & {
   originalCompletion?: string
-  contentFilterResult?: ContentFilterResult
+  contentFilterResult?: unknown
 }
 
 export const UpsertChatMessage = async (
@@ -224,7 +218,6 @@ export const migrateChatMessagesForCurrentUser = async (
       response: resources,
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error("Error occurred during chat message migration: ", error)
     return {
       status: "ERROR",

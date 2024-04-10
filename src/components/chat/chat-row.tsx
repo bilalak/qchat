@@ -7,7 +7,7 @@ import { Markdown } from "@/components/markdown/markdown"
 import Typography from "@/components/typography"
 import { CreateUserFeedback } from "@/features/chat/chat-services/chat-message-service"
 import { useChatContext } from "@/features/chat/chat-ui/chat-context"
-import { ChatRole, ChatSentiment, ContentFilterResult, FeedbackType } from "@/features/chat/models"
+import { ChatRole, ChatSentiment, FeedbackType } from "@/features/chat/models"
 import { showError } from "@/features/globals/global-message-store"
 import { AI_NAME } from "@/features/theme/theme-config"
 import AssistantButtons from "@/features/ui/assistant-buttons"
@@ -20,7 +20,7 @@ interface ChatRowProps {
     sentiment?: ChatSentiment
     feedback?: FeedbackType
     reason?: string
-    contentFilterResult?: ContentFilterResult
+    contentFilterResult?: unknown
   }
   type: ChatRole
   chatThreadId: string
@@ -51,7 +51,6 @@ export const ChatRow: FC<ChatRowProps> = props => {
           ChatSentiment.Positive,
           "",
           props.chatThreadId
-          // eslint-disable-next-line no-console
         ).catch(err => console.error(err))
         break
       case "ThumbsDown":

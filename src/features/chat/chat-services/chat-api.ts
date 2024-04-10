@@ -11,13 +11,7 @@ import {
 import { UpsertChatThread } from "./chat-thread-service"
 import { UpdateChatThreadIfUncategorised } from "./chat-utility"
 
-import {
-  ChatRole,
-  CreateCompletionMessage,
-  ContentFilterResult,
-  ChatThreadModel,
-  ChatMessageModel,
-} from "@/features/chat/models"
+import { ChatRole, CreateCompletionMessage, ChatThreadModel, ChatMessageModel } from "@/features/chat/models"
 import { mapOpenAIChatMessages } from "@/features/common/mapping-helper"
 import { ServerActionResponse } from "@/features/common/server-action-response"
 import { OpenAIInstance } from "@/features/common/services/open-ai"
@@ -69,7 +63,7 @@ export const ChatAPI = async (
         )
   } catch (exception) {
     if (exception instanceof APIError && exception.status === 400 && exception.code === "content_filter") {
-      const contentFilterResult = exception.error as ContentFilterResult
+      const contentFilterResult = exception.error as unknown
       contentFilterTriggerCount++
 
       let upsertResponse: ServerActionResponse<unknown> = await UpsertChatMessage(
@@ -104,7 +98,7 @@ export const ChatAPI = async (
       const message = buildAssistantChatMessage(completion, translatedCompletion)
 
       const completionMessage = updatedLastHumanMessage as typeof updatedLastHumanMessage & CreateCompletionMessage
-      const addedMessage = await UpsertChatMessage(chatThread.id, message, completionMessage.completion_id)
+      const addedMessage = await UpsertChatMessage(chatThread.id, message, completionMessage.completionId)
       if (addedMessage?.status !== "OK") {
         throw addedMessage.errors
       }
@@ -133,7 +127,7 @@ export const ChatAPI = async (
 
 export type DataItem = JSONValue &
   Message & {
-    contentFilterResult?: ContentFilterResult
+    contentFilterResult?: unknown
     contentFilterTriggerCount: number
   }
 
