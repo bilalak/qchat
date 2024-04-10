@@ -162,9 +162,10 @@ export const ChatProvider: FC<Prop> = props => {
             ...(dataItem as Message),
           }
         }),
-        chatThreadLocked: [...(response.messages as ChatMessageModel[]), ...((response.data as DataItem[]) ?? [])].some(
-          message => (message.contentFilterCount ?? 0) >= maxSafetyTriggersAllowed
-        ),
+        chatThreadLocked: [
+          props.chatThread.contentFilterCount ?? 0,
+          ...((response.data as DataItem[]) ?? []).map(message => message.contentFilterCount ?? 0),
+        ].some(count => count >= maxSafetyTriggersAllowed),
         handleSubmit,
         setChatBody,
         chatBody,

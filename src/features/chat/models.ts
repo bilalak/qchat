@@ -65,9 +65,6 @@ export interface ChatMessageModel {
   sentiment: ChatSentiment
   reason: string
   systemPrompt: string
-  /** @deprecated Legacy contentSafetyWarning - use contentSafety instead */
-  contentSafetyWarning: string
-  contentFilterCount?: number
   contentFilterResult?: ContentFilterResult
 }
 
@@ -100,9 +97,9 @@ export interface ChatThreadModel {
   systemPrompt?: string
   contextPrompt?: string
   metaPrompt?: string
-  contentSafetyWarning?: string
   prompts: []
   selectedPrompt: string
+  contentFilterCount?: number
 }
 
 export interface PromptGPTBody {

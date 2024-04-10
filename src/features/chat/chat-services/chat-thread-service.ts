@@ -224,7 +224,6 @@ export const CreateChatThread = async (): ServerActionResponseAsync<ChatThreadMo
       createdAt: new Date(),
       isDeleted: false,
       isDisabled: false,
-      contentSafetyWarning: "",
       chatType: ChatType.Simple,
       conversationStyle: ConversationStyle.Precise,
       conversationSensitivity: ConversationSensitivity.Official,
@@ -299,7 +298,6 @@ export const InitChatSession = async (props: PromptGPTProps): ServerActionRespon
     sentiment: ChatSentiment.Neutral,
     reason: "",
     systemPrompt: "",
-    contentSafetyWarning: "",
     createdAt: new Date(),
     role: ChatRole.User,
   }

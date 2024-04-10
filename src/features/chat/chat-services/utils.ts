@@ -13,7 +13,6 @@ export const transformCosmosToAIModel = (chats: Array<ChatMessageModel>): Array<
       sentiment: chat.sentiment,
       reason: chat.reason,
       contentFilterResult: chat.contentFilterResult,
-      contentFilterCount: chat.contentFilterCount,
     }
   })
 }

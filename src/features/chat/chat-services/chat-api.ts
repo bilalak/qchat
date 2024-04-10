@@ -8,6 +8,7 @@ import {
   FindTopChatMessagesForCurrentUser,
   ChatCompletionMessageTranslated,
 } from "./chat-message-service"
+import { UpsertChatThread } from "./chat-thread-service"
 import { UpdateChatThreadIfUncategorised } from "./chat-utility"
 
 import {
@@ -18,6 +19,7 @@ import {
   ChatMessageModel,
 } from "@/features/chat/models"
 import { mapOpenAIChatMessages } from "@/features/common/mapping-helper"
+import { ServerActionResponse } from "@/features/common/server-action-response"
 import { OpenAIInstance } from "@/features/common/services/open-ai"
 
 export const ChatAPI = async (
@@ -32,14 +34,13 @@ export const ChatAPI = async (
   const historyResponse = await FindTopChatMessagesForCurrentUser(chatThread.id)
   if (historyResponse.status !== "OK") throw historyResponse
 
-  let contentFilterCount = Math.max(...[...historyResponse.response.map(message => message.contentFilterCount ?? 0), 0])
+  let contentFilterCount = chatThread.contentFilterCount ?? 0
 
   const addMessageResponse = await UpsertChatMessage(
     chatThread.id,
     {
       content: updatedLastHumanMessage.content,
       role: ChatRole.User,
-      contentFilterCount,
     },
     updatedLastHumanMessage.id
   )
@@ -71,15 +72,18 @@ export const ChatAPI = async (
       const contentFilterResult = exception.error as ContentFilterResult
       contentFilterCount++
 
-      await UpsertChatMessage(
+      let upsertResponse: ServerActionResponse<unknown> = await UpsertChatMessage(
         chatThread.id,
         {
           ...addMessageResponse.response,
           contentFilterResult,
-          contentFilterCount,
         },
         updatedLastHumanMessage.id
       )
+      if (upsertResponse.status !== "OK") throw upsertResponse
+
+      upsertResponse = await UpsertChatThread({ ...chatThread, contentFilterCount })
+      if (upsertResponse.status !== "OK") throw upsertResponse
 
       data.append({
         id: addMessageResponse.response.id,

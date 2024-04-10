@@ -113,7 +113,6 @@ export const FindChatMessageForCurrentUser = async (
 export type ChatCompletionMessageTranslated = ChatCompletionMessage & {
   originalCompletion?: string
   contentFilterResult?: ContentFilterResult
-  contentFilterCount?: number
 }
 
 export const UpsertChatMessage = async (
@@ -140,9 +139,7 @@ export const UpsertChatMessage = async (
       feedback: FeedbackType.None,
       sentiment: ChatSentiment.Neutral,
       reason: "",
-      contentSafetyWarning: "",
       contentFilterResult: message.contentFilterResult,
-      contentFilterCount: message.contentFilterCount,
     }
     const container = await HistoryContainer()
     const { resource } = await container.items.upsert<ChatMessageModel>(modelToSave)
