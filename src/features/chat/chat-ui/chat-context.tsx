@@ -9,7 +9,7 @@ import { FileState, useFileState } from "./chat-file/use-file-state"
 import { SpeechToTextProps, useSpeechToText } from "./chat-speech/use-speech-to-text"
 import { TextToSpeechProps, useTextToSpeech } from "./chat-speech/use-text-to-speech"
 
-import { DataItem, maxSafetyTriggersAllowed } from "@/features/chat/chat-services/chat-api-simple"
+import { DataItem, maxSafetyTriggersAllowed } from "@/features/chat/chat-services/chat-api"
 import { transformCosmosToAIModel } from "@/features/chat/chat-services/utils"
 import {
   ChatMessageModel,
