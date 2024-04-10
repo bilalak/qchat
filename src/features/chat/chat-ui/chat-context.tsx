@@ -9,7 +9,7 @@ import { FileState, useFileState } from "./chat-file/use-file-state"
 import { SpeechToTextProps, useSpeechToText } from "./chat-speech/use-speech-to-text"
 import { TextToSpeechProps, useTextToSpeech } from "./chat-speech/use-text-to-speech"
 
-import { DataItem, maxSafetyTriggersAllowed } from "@/features/chat/chat-services/chat-api"
+import { DataItem, maxContentFilterTriggerCountAllowed } from "@/features/chat/chat-services/chat-api"
 import { transformCosmosToAIModel } from "@/features/chat/chat-services/utils"
 import {
   ChatMessageModel,
@@ -163,9 +163,9 @@ export const ChatProvider: FC<Prop> = props => {
           }
         }),
         chatThreadLocked: [
-          props.chatThread.contentFilterCount ?? 0,
-          ...((response.data as DataItem[]) ?? []).map(message => message.contentFilterCount ?? 0),
-        ].some(count => count >= maxSafetyTriggersAllowed),
+          props.chatThread.contentFilterTriggerCount ?? 0,
+          ...((response.data as DataItem[]) ?? []).map(message => message.contentFilterTriggerCount ?? 0),
+        ].some(count => count >= maxContentFilterTriggerCountAllowed),
         handleSubmit,
         setChatBody,
         chatBody,

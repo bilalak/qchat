@@ -34,7 +34,7 @@ export const ChatAPI = async (
   const historyResponse = await FindTopChatMessagesForCurrentUser(chatThread.id)
   if (historyResponse.status !== "OK") throw historyResponse
 
-  let contentFilterCount = chatThread.contentFilterCount ?? 0
+  let contentFilterTriggerCount = chatThread.contentFilterTriggerCount ?? 0
 
   const addMessageResponse = await UpsertChatMessage(
     chatThread.id,
@@ -51,7 +51,7 @@ export const ChatAPI = async (
   let response
   try {
     response =
-      contentFilterCount >= maxSafetyTriggersAllowed
+      contentFilterTriggerCount >= maxContentFilterTriggerCountAllowed
         ? makeContentFilterResponse(true)
         : await openAI.chat.completions.create(
           {
@@ -70,7 +70,7 @@ export const ChatAPI = async (
   } catch (exception) {
     if (exception instanceof APIError && exception.status === 400 && exception.code === "content_filter") {
       const contentFilterResult = exception.error as ContentFilterResult
-      contentFilterCount++
+      contentFilterTriggerCount++
 
       let upsertResponse: ServerActionResponse<unknown> = await UpsertChatMessage(
         chatThread.id,
@@ -82,17 +82,17 @@ export const ChatAPI = async (
       )
       if (upsertResponse.status !== "OK") throw upsertResponse
 
-      upsertResponse = await UpsertChatThread({ ...chatThread, contentFilterCount })
+      upsertResponse = await UpsertChatThread({ ...chatThread, contentFilterTriggerCount })
       if (upsertResponse.status !== "OK") throw upsertResponse
 
       data.append({
         id: addMessageResponse.response.id,
         content: addMessageResponse.response.content,
         contentFilterResult,
-        contentFilterCount,
+        contentFilterTriggerCount,
       } as DataItem)
 
-      response = makeContentFilterResponse(contentFilterCount >= maxSafetyTriggersAllowed)
+      response = makeContentFilterResponse(contentFilterTriggerCount >= maxContentFilterTriggerCountAllowed)
     } else {
       throw exception
     }
@@ -134,10 +134,10 @@ export const ChatAPI = async (
 export type DataItem = JSONValue &
   Message & {
     contentFilterResult?: ContentFilterResult
-    contentFilterCount: number
+    contentFilterTriggerCount: number
   }
 
-export const maxSafetyTriggersAllowed = 3
+export const maxContentFilterTriggerCountAllowed = 3
 async function* makeContentFilterResponse(lockChatThread: boolean): AsyncGenerator<ChatCompletionChunk> {
   yield {
     choices: [

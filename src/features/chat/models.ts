@@ -99,7 +99,7 @@ export interface ChatThreadModel {
   metaPrompt?: string
   prompts: []
   selectedPrompt: string
-  contentFilterCount?: number
+  contentFilterTriggerCount?: number
 }
 
 export interface PromptGPTBody {
