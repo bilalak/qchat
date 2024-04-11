@@ -23,7 +23,7 @@ export const ChatAPIEntry = async (props: PromptGPTProps): Promise<Response> => 
 
     if (props.chatType === "simple" || !dataChatTypes.includes(props.chatType)) {
       const userMessage: ChatCompletionMessageParam = {
-        role: ChatRole.System,
+        role: ChatRole.User,
         content: updatedLastHumanMessage.content,
       }
 
@@ -40,7 +40,7 @@ export const ChatAPIEntry = async (props: PromptGPTProps): Promise<Response> => 
         .join("\n------\n")
 
       const userMessage: ChatCompletionMessageParam = {
-        role: ChatRole.System,
+        role: ChatRole.User,
         content: buildDataChatContextPrompt({
           context,
           userQuestion: updatedLastHumanMessage.content,
