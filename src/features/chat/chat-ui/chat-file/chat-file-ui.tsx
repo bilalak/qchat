@@ -1,5 +1,5 @@
 import { ArrowUpCircle, Loader2 } from "lucide-react"
-import { FC, useRef } from "react"
+import { FC, useEffect, useRef } from "react"
 
 import { useFileSelection } from "./use-file-selection"
 
@@ -26,6 +26,12 @@ export const ChatFileUI: FC = () => {
   }
 
   const acceptedFileType = getAcceptedFileType(chatBody.chatType)
+
+  useEffect(() => {
+    if (isFileNull && fileInputRef.current) {
+      fileInputRef.current.value = fileInputRef.current.defaultValue
+    }
+  }, [isFileNull])
 
   return (
     <div className="flex flex-col gap-2">

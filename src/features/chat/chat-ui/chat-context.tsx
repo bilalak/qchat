@@ -5,6 +5,10 @@ import { UseChatHelpers, useChat } from "ai/react"
 import { useRouter } from "next/navigation"
 import React, { FC, FormEvent, createContext, useContext, useRef, useState } from "react"
 
+import { FileState, useFileState } from "./chat-file/use-file-state"
+import { SpeechToTextProps, useSpeechToText } from "./chat-speech/use-speech-to-text"
+import { TextToSpeechProps, useTextToSpeech } from "./chat-speech/use-text-to-speech"
+
 import { DataItem, maxContentFilterTriggerCountAllowed } from "@/features/chat/chat-services/chat-api"
 import { transformCosmosToAIModel } from "@/features/chat/chat-services/utils"
 import {
@@ -15,13 +19,10 @@ import {
   ConversationSensitivity,
   PromptGPTBody,
   CreateCompletionMessage,
+  ChatDocumentModel,
 } from "@/features/chat/models"
 import { useGlobalMessageContext } from "@/features/globals/global-message-context"
 import { uniqueId } from "@/lib/utils"
-
-import { FileState, useFileState } from "./chat-file/use-file-state"
-import { SpeechToTextProps, useSpeechToText } from "./chat-speech/use-speech-to-text"
-import { TextToSpeechProps, useTextToSpeech } from "./chat-speech/use-text-to-speech"
 
 interface ChatContextProps extends UseChatHelpers {
   id: string
@@ -37,14 +38,16 @@ interface ChatContextProps extends UseChatHelpers {
   closeModal?: () => void
   offenderId?: string
   chatThreadLocked: boolean
+  documents: ChatDocumentModel[]
 }
 
 const ChatContext = createContext<ChatContextProps | null>(null)
 interface Prop {
   children: React.ReactNode
   id: string
-  chats: Array<ChatMessageModel>
+  chats: ChatMessageModel[]
   chatThread: ChatThreadModel
+  documents: ChatDocumentModel[]
   offenderId?: string
   chatThreadName?: ChatThreadModel["name"]
 }
@@ -162,6 +165,7 @@ export const ChatProvider: FC<Prop> = props => {
             ...(dataItem as Message),
           }
         }),
+        documents: props.documents,
         chatThreadLocked: [
           props.chatThread.contentFilterTriggerCount ?? 0,
           ...((response.data as DataItem[]) ?? []).map(message => message.contentFilterTriggerCount ?? 0),

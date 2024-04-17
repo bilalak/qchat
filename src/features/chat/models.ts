@@ -119,6 +119,7 @@ export interface ChatDocumentModel {
   tenantId: string
   isDeleted: boolean
   createdAt: Date
+  contents?: string
   type: ChatRecordType.Document
 }
 

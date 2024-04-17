@@ -32,10 +32,12 @@ export const useFileSelection = (
       if (uploadResponse.status !== "OK") throw showError(uploadResponse.errors[0].message)
 
       const indexErrors = []
-      for (let i = 0; i < uploadResponse.response.length; i++) {
+      const [splitDocuments, contents] = uploadResponse.response
+
+      for (let i = 0; i < splitDocuments.length; i++) {
         try {
-          setUploadButtonLabel(`Indexing file [${i + 1}]/[${uploadResponse.response.length}]`)
-          const indexResponse = await IndexDocuments(file.name, [uploadResponse.response[i]], props.id, i + 1)
+          setUploadButtonLabel(`Indexing file [${i + 1}]/[${splitDocuments.length}]`)
+          const indexResponse = await IndexDocuments(file.name, [splitDocuments[i]], props.id, i + 1, contents)
 
           if (indexResponse.status !== "OK") {
             showError(`${file.name} failed to be indexed. ${indexResponse.errors[0].message}`)
@@ -51,6 +53,7 @@ export const useFileSelection = (
           cause: indexErrors,
         })
 
+      fileState.setIsFileNull(true)
       showSuccess({
         title: "File upload",
         description: `${file.name} uploaded successfully.`,
