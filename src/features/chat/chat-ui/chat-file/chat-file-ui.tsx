@@ -42,7 +42,7 @@ export const ChatFileUI: FC = () => {
         <Input
           ref={fileInputRef}
           id="file-upload"
-          name={fileState.showFileUpload}
+          name={chatBody.chatType}
           type="file"
           required
           disabled={isUploadingFile}
