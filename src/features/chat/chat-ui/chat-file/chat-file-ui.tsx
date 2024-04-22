@@ -1,4 +1,5 @@
 import { ArrowUpCircle, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { FC, useEffect, useRef } from "react"
 
 import { useChatContext } from "@/features/chat/chat-ui/chat-context"
@@ -11,8 +12,9 @@ import { useFileSelection } from "./use-file-selection"
 export const ChatFileUI: FC = () => {
   const { id, fileState, chatBody, offenderId } = useChatContext()
   const { isFileNull, setIsFileNull, uploadButtonLabel, isUploadingFile } = fileState
-  const { onSubmit } = useFileSelection({ id })
+  const { onSubmit: uploadFile } = useFileSelection({ id })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
 
   const getAcceptedFileType = (chatType: string): string => {
     switch (chatType) {
@@ -32,6 +34,11 @@ export const ChatFileUI: FC = () => {
       fileInputRef.current.value = fileInputRef.current.defaultValue
     }
   }, [isFileNull])
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    await uploadFile(e)
+    router.refresh()
+  }
 
   return (
     <div className="flex flex-col gap-2">

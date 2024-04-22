@@ -118,7 +118,6 @@ export const ChatProvider: FC<Prop> = props => {
   }
 
   const onChatTypeChange = (value: ChatType): void => {
-    fileState.setShowFileUpload(value)
     fileState.setIsFileNull(true)
     setChatBody({ ...chatBody, chatType: value })
   }
