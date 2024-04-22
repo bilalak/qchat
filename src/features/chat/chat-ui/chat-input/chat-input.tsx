@@ -77,7 +77,7 @@ const ChatInput: FC<Props> = () => {
   return (
     <form onSubmit={submit} className="absolute bottom-0 z-80 flex w-full items-center">
       <div className="container relative mx-auto flex max-w-4xl items-center gap-2 py-2">
-        {fileChatVisible && !fileState.isUploadingFile && <ChatFileSlider />}
+        {fileChatVisible && <ChatFileSlider />}
         <Textarea
           id="chatMessage"
           name="chatMessage"

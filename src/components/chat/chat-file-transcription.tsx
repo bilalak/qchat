@@ -3,6 +3,9 @@ import { FC } from "react"
 
 import { Markdown } from "@/components/markdown/markdown"
 import Typography from "@/components/typography"
+import { useChatContext } from "@/features/chat/chat-ui/chat-context"
+import { convertTranscriptionToWordDocument } from "@/features/common/file-export"
+import { AI_NAME } from "@/features/theme/theme-config"
 import { Button } from "@/features/ui/button"
 import { useWindowSize } from "@/features/ui/windowsize"
 
@@ -12,15 +15,12 @@ interface ChatFileTranscriptionProps {
 }
 
 export const ChatFileTranscription: FC<ChatFileTranscriptionProps> = props => {
-  const onDownloadTranscription = (): void => {
-    const element = document.createElement("a")
-    element.setAttribute("href", `data:text/plain;base64,${toBinaryBase64(props.contents)}`)
-    element.setAttribute("download", `${props.name}-transcription.txt`)
+  const { chatBody } = useChatContext()
 
-    document.body.appendChild(element)
-    element.click()
-
-    document.body.removeChild(element)
+  const onDownloadTranscription = async (): Promise<void> => {
+    const fileName = `${props.name}-transcription.docx`
+    const chatThreadName = chatBody.chatThreadName || `${AI_NAME} ${fileName}`
+    await convertTranscriptionToWordDocument([props.contents], props.name, fileName, AI_NAME, chatThreadName)
   }
 
   const { width } = useWindowSize()
@@ -61,13 +61,4 @@ export const ChatFileTranscription: FC<ChatFileTranscriptionProps> = props => {
       </section>
     </article>
   )
-}
-
-const toBinaryBase64 = (text: string): string => {
-  const codeUnits = new Uint16Array(text.length)
-  for (let i = 0; i < codeUnits.length; i++) {
-    codeUnits[i] = text.charCodeAt(i)
-  }
-
-  return btoa(String.fromCharCode(...new Uint8Array(codeUnits.buffer)))
 }
