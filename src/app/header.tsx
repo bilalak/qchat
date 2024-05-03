@@ -14,7 +14,7 @@ const Sidebar: React.FC = () => {
         <div className="col-span-2 hidden border-r-2 border-accent pr-3 md:col-span-2 md:block md:scale-75">
           <QgovSvg />
         </div>
-        <div className="font-meta font-nums col-span-4 m-0 flex flex-col p-0 text-xl font-bold leading-snug antialiased md:col-span-3">
+        <div className="font-nums col-span-4 m-0 flex flex-col p-0 font-meta text-xl font-bold leading-snug antialiased md:col-span-3">
           <Typography variant="h1" className="tracking-wider text-siteTitle">
             {AI_NAME}
           </Typography>
