@@ -36,6 +36,44 @@ export const speechToTextRecognizeOnce = async (formData: FormData): Promise<str
   return text
 }
 
+export const transcribeAudio = async (formData: FormData): Promise<string> => {
+  console.warn("transcribing audio using whisper")
+
+  const AZURE_ML_MANAGED_ERROR_CODE = 424
+  // const AZURE_ML_TIMEOUT_ERROR_CODE = 408
+  const file = formData.get("audio") as File
+
+  const response = await fetch(process.env.APIM_WHISPER_BASE, {
+    method: "POST",
+    headers: {
+      "api-key": process.env.APIM_KEY!,
+    },
+    body: JSON.stringify({
+      audio: await arrayBufferToBase64(await file.arrayBuffer()),
+      action: "transcribe",
+      duration: "00:05:00",
+      language: "english",
+      format: "txt",
+    }),
+  })
+
+  if (response.ok || response.status === AZURE_ML_MANAGED_ERROR_CODE) {
+    const body = (await response.json()) as WhisperResponse
+
+    if (response.ok) {
+      return body.transcription!
+    }
+
+    console.error("whisper response error: ", body)
+    throw body
+  }
+
+  const text = await response.text()
+  console.error("whisper error: ", text)
+
+  throw text
+}
+
 async function _recognizeOnceFromFile(recognizer: SpeechRecognizer): Promise<string> {
   try {
     let recognisedText = ""
@@ -150,4 +188,11 @@ const _audioConfigFromStream = async (file: File): Promise<AudioConfig> => {
     console.error(e)
     throw new Error("Unsupported audio file. " + e)
   }
+}
+
+interface WhisperResponse {
+  audio?: string
+  transcription?: string
+  error?: string
+  ffmpeg_error?: string
 }
