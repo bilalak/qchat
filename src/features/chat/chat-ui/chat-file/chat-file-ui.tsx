@@ -24,7 +24,7 @@ export const ChatFileUI: FC = () => {
       case "data":
         return ".pdf"
       case "audio":
-        return ".wav"
+        return window.location.search.includes("whisper") ? "audio/*, video/*" : ".wav"
       default:
         return ""
     }

@@ -28,6 +28,10 @@ export const useFileSelection = (
 
       formData.append("chatType", chatBody.chatType)
       formData.append("id", props.id)
+
+      if (window.location.search.includes("whisper")) {
+        formData.append("whisper", "1")
+      }
       const file: File | null = formData.get(chatBody.chatType) as unknown as File
       const uploadResponse = await UploadDocument(formData)
       if (uploadResponse.status !== "OK") throw showError(uploadResponse.errors[0].message)

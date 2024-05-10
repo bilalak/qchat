@@ -11,7 +11,7 @@ import { HistoryContainer } from "@/features/common/services/cosmos"
 import { uniqueId } from "@/lib/utils"
 
 import { AzureCogDocumentIndex, indexDocuments } from "./azure-cog-search/azure-cog-vector-store"
-import { speechToTextRecognizeOnce } from "./chat-audio-helper"
+import { speechToTextRecognizeOnce, transcribeAudio } from "./chat-audio-helper"
 import { arrayBufferToBase64, customBeginAnalyzeDocument } from "./chat-document-helper"
 import { chunkDocumentWithOverlap } from "./text-chunk"
 import { isNotNullOrEmpty } from "./utils"
@@ -76,9 +76,15 @@ export const UploadDocument = async (formData: FormData): ServerActionResponseAs
     const chatType = formData.get("chatType") as string
     let fileContent: [string[], string?]
     if (chatType === "audio") {
-      const docs = await speechToTextRecognizeOnce(formData)
-      const splitDocuments = chunkDocumentWithOverlap(docs.join("\n"))
-      fileContent = [splitDocuments, docs.join("\n")]
+      if (formData.has("whisper")) {
+        const transcription = await transcribeAudio(formData)
+        const splitDocuments = chunkDocumentWithOverlap(transcription)
+        fileContent = [splitDocuments, transcription]
+      } else {
+        const docs = await speechToTextRecognizeOnce(formData)
+        const splitDocuments = chunkDocumentWithOverlap(docs.join("\n"))
+        fileContent = [splitDocuments, docs.join("\n")]
+      }
     } else {
       const docs = await LoadFile(formData, chatType)
       const splitDocuments = chunkDocumentWithOverlap(docs.join("\n"))
