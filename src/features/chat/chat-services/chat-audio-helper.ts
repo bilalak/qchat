@@ -43,7 +43,8 @@ export const transcribeAudio = async (formData: FormData): Promise<string> => {
   // const AZURE_ML_TIMEOUT_ERROR_CODE = 408
   const file = formData.get("audio") as File
 
-  const response = await fetch(process.env.APIM_WHISPER_BASE, {
+  const apiUrl = process.env.APIM_BASE + "/whisper"
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
       "api-key": process.env.APIM_KEY!,

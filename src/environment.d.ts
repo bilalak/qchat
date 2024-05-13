@@ -5,7 +5,6 @@ declare global {
       ANALYZE: string
       APIM_BASE: string
       APIM_BASE_WSS: string
-      APIM_WHISPER_BASE: string
       APIM_KEY: string
       APPLICATIONINSIGHTS_CONNECTION_STRING: string
       AZURE_AD_AUTHORIZATION_ENDPOINT: string
