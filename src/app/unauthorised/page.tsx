@@ -22,7 +22,6 @@ const Home: React.FC = () => {
   return (
     <div className="flex h-full items-center justify-center">
       <Card className="flex min-w-[300px] flex-col rounded-md bg-altBackground p-8 text-foreground">
-        {" "}
         <Typography variant="h3" className="text-xl font-semibold">
           You are not authorised to view this page
         </Typography>

@@ -6,6 +6,7 @@ export type UserIdentity = {
   name: string | null | undefined
   upn: string
   qchatAdmin: boolean
+  tenantAdmin: boolean
 }
 
 export type UserActivity = {

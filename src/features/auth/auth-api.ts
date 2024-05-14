@@ -7,6 +7,7 @@ import { UserSignInHandler, SignInErrorType } from "./sign-in"
 
 export interface AuthToken extends JWT {
   qchatAdmin?: boolean
+  tenantAdmin?: boolean
   exp: number
   iat: number
   refreshExpiresIn: number
@@ -99,6 +100,7 @@ export const options: NextAuthOptions = {
       const authToken = token as AuthToken
       if (user) {
         authToken.qchatAdmin = user.qchatAdmin ?? false
+        authToken.tenantAdmin = user.tenantAdmin ?? false
         authToken.tenantId = user.tenantId ?? ""
         authToken.upn = user.upn ?? ""
         authToken.userId = user.userId ?? ""
@@ -111,6 +113,7 @@ export const options: NextAuthOptions = {
       session.user.tenantId = authToken.tenantId ? String(authToken.tenantId) : ""
       session.user.upn = authToken.upn ? String(authToken.upn) : ""
       session.user.userId = authToken.userId ? String(authToken.userId) : ""
+      session.user.tenantAdmin = authToken.tenantAdmin ?? false
       return session
     },
   },

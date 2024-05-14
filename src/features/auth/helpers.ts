@@ -58,6 +58,7 @@ export type UserModel = {
   upn: string
   tenantId: string
   qchatAdmin: boolean
+  tenantAdmin: boolean
   userId: string
 }
 

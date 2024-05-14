@@ -140,6 +140,7 @@ const getsertUser = async (userGroups: string[], user: User | AdapterUser): Prom
         groups: userGroups,
         failed_login_attempts: 0,
         last_failed_login: null,
+        tenantAdmin: user.tenantAdmin ?? false,
         history: [`${now}: User created.`],
         preferences: {
           contextPrompt: "",

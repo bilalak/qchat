@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt"
 
 const LOGIN_PAGE = "/login"
 const UNAUTHORISED_PAGE = "/unauthorised"
+const NOT_TENANT_ADMIN = "/unauthorised/tenantadmin"
 
 const requireAuth: string[] = [
   "/api",
@@ -15,7 +16,8 @@ const requireAuth: string[] = [
   "/whats-new",
 ]
 
-const requireAdmin: string[] = ["/reporting", "/settings"]
+const requireAdmin: string[] = ["/reporting", "/settings/tenant"]
+const requireTenantAdmin: string[] = ["/settings/details"]
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const pathname = request.nextUrl.pathname
@@ -30,6 +32,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
     if (requireAdmin.some(path => pathname.startsWith(path)) && !token.qchatAdmin) {
       return NextResponse.rewrite(new URL(UNAUTHORISED_PAGE, request.url))
+    }
+
+    if (requireTenantAdmin.some(path => pathname.startsWith(path)) && !token.qchatAdmin) {
+      return NextResponse.rewrite(new URL(NOT_TENANT_ADMIN, request.url))
     }
   }
   return NextResponse.next()
