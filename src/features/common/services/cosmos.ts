@@ -1,15 +1,22 @@
 import { Container, CosmosClient, PartitionKeyDefinitionVersion, PartitionKeyKind } from "@azure/cosmos"
+import { DefaultAzureCredential } from "@azure/identity"
 
 let _cosmosClient: CosmosClient | null = null
 const CosmosInstance = (): CosmosClient => {
   if (_cosmosClient) return _cosmosClient
 
-  const endpoint = process.env.APIM_BASE
-  const key = process.env.AZURE_COSMOSDB_KEY
-  const defaultHeaders = { "api-key": process.env.APIM_KEY || "" }
-  if (!endpoint || !key) throw new Error("Azure Cosmos DB is not configured. Please configure it in the .env file.")
+  // const endpoint = process.env.APIM_BASE
+  const endpoint = process.env.AZURE_COSMOSDB_ENDPOINT
+  const credential = new DefaultAzureCredential()
+  // console.log(credential)
+  // const key = process.env.AZURE_COSMOSDB_KEY
+  // const defaultHeaders = { "api-key": process.env.APIM_KEY || "" }
+  if (!endpoint) throw new Error("Azure Cosmos DB is not configured. Please configure it in the .env file.")
+  // if (!endpoint || !key) throw new Error("Azure Cosmos DB is not configured. Please configure it in the .env file.")
 
-  _cosmosClient = new CosmosClient({ endpoint, key, defaultHeaders })
+  // _cosmosClient = new CosmosClient({ endpoint, aadCredentials: credential, defaultHeaders })
+
+  _cosmosClient = new CosmosClient({ endpoint, aadCredentials: credential })
   return _cosmosClient
 }
 
