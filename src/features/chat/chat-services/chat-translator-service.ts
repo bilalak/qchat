@@ -14,13 +14,13 @@ export const extractCitations = (context: string): { text: string; citations: st
 }
 
 export async function translator(input: string): ServerActionResponseAsync<string> {
-  const codeBlockPattern = /(```[\s\S]*?```)/g
+  const codeBlockPattern = /(```[\s\S]*?```)/gs
   const codeBlocks: string[] = []
   let i = 0
 
   const processedText = input.replace(codeBlockPattern, match => {
     codeBlocks.push(match)
-    return `__codeblock_${i++}__`
+    return ` __codeblock_${i++}__ `
   })
 
   try {
@@ -28,6 +28,7 @@ export async function translator(input: string): ServerActionResponseAsync<strin
     let result = translatedTexts.length <= 0 ? processedText : revertCase(processedText, translatedTexts[0])
 
     codeBlocks.forEach((codeBlock, index) => {
+      codeBlock += " "
       result = result.replace(`__codeblock_${index}__`, codeBlock)
     })
 
@@ -69,17 +70,25 @@ async function translateFunction(
 }
 
 function revertCase(originalText: string, translatedText: string): string {
-  const originalWords = originalText.split(" ")
-  const translatedWords = translatedText.split(" ")
+  const originalWords = originalText.split(/\b/)
+  const translatedWords = translatedText.split(/\b/)
+  let originalIndex = 0
+  const result = translatedWords
+    .map(translatedWord => {
+      const originalWord = originalWords[originalIndex] || ""
+      originalIndex++
 
-  return originalWords
-    .map((originalWord, i) => {
-      const translatedWord = translatedWords[i] || ""
+      if (originalWord.startsWith("`")) {
+        return originalWord
+      }
+
       return [...translatedWord]
-        .map((char, index) =>
-          index < originalWord.length && originalWord.charAt(index).match(/[A-Z]/) ? char.toUpperCase() : char
-        )
+        .map((char, index) => {
+          const originalChar = originalWord.charAt(index)
+          return originalChar && originalChar.match(/[A-Z]/) ? char.toUpperCase() : char
+        })
         .join("")
     })
-    .join(" ")
+    .join("")
+  return result
 }
