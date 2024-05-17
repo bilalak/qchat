@@ -52,8 +52,7 @@ export const transcribeAudio = async (formData: FormData): Promise<string> => {
     body: JSON.stringify({
       audio: await arrayBufferToBase64(await file.arrayBuffer()),
       action: "transcribe",
-      duration: "00:05:00",
-      language: "english",
+      language: "en",
       format: "txt",
     }),
   })
