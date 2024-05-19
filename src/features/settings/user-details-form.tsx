@@ -113,7 +113,7 @@ This approach helps us interact with you in the most effective and considerate m
         </div>
         <div className="m-2">
           <Typography variant="h5" className="flex items-center">
-            Name:
+            Email:
             {isLoading && (
               <div className="ml-2">
                 <CardSkeleton />
@@ -142,7 +142,7 @@ This approach helps us interact with you in the most effective and considerate m
               className="border-1 w-full rounded-md p-2"
               placeholder="Enter new context prompt..."
               rows={6}
-              maxLength={400}
+              maxLength={500}
               required
             />
           </Form.Control>
