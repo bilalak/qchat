@@ -6,7 +6,7 @@ import AzureADProvider from "next-auth/providers/azure-ad"
 import { UserSignInHandler, SignInErrorType } from "./sign-in"
 
 export interface AuthToken extends JWT {
-  qchatAdmin?: boolean
+  admin?: boolean
   tenantAdmin?: boolean
   exp: number
   iat: number
@@ -46,7 +46,7 @@ const configureIdentityProvider = (): Provider[] => {
         userinfo: process.env.AZURE_AD_USERINFO_ENDPOINT,
         profile: profile => {
           const email = profile.email != undefined ? profile.email?.toLowerCase() : profile.upn.toLowerCase()
-          const qchatAdmin = adminEmails.includes(email)
+          const admin = adminEmails.includes(email)
           profile.tenantId = profile.employee_idp
           profile.secGroups = profile.employee_groups
           if (process.env.NODE_ENV === "development") {
@@ -59,7 +59,7 @@ const configureIdentityProvider = (): Provider[] => {
             name: profile.name,
             email: profile.email ?? profile.upn,
             upn: profile.upn,
-            qchatAdmin: qchatAdmin,
+            admin: admin,
             userId: profile.upn,
           }
         },
@@ -99,7 +99,7 @@ export const options: NextAuthOptions = {
     jwt({ token, user }) {
       const authToken = token as AuthToken
       if (user) {
-        authToken.qchatAdmin = user.qchatAdmin ?? false
+        authToken.admin = user.admin ?? false
         authToken.tenantAdmin = user.tenantAdmin ?? false
         authToken.tenantId = user.tenantId ?? ""
         authToken.upn = user.upn ?? ""
@@ -109,7 +109,7 @@ export const options: NextAuthOptions = {
     },
     session({ session, token }) {
       const authToken = token as AuthToken
-      session.user.qchatAdmin = authToken.qchatAdmin ?? false
+      session.user.admin = authToken.admin ?? false
       session.user.tenantId = authToken.tenantId ? String(authToken.tenantId) : ""
       session.user.upn = authToken.upn ? String(authToken.upn) : ""
       session.user.userId = authToken.userId ? String(authToken.userId) : ""

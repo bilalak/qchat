@@ -5,7 +5,7 @@ import { DefaultSession } from "next-auth"
 declare module "next-auth" {
   interface Session {
     user: {
-      qchatAdmin: boolean
+      admin: boolean
       tenantAdmin: boolean
       tenantId: string
       upn: string
@@ -13,10 +13,10 @@ declare module "next-auth" {
     } & DefaultSession["user"]
   }
   interface Token {
-    qchatAdmin: boolean
+    admin: boolean
   }
   interface User {
-    qchatAdmin: boolean
+    admin: boolean
     tenantAdmin: boolean
     tenantId: string
     upn: string

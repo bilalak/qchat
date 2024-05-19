@@ -30,11 +30,11 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       return NextResponse.redirect(new URL(LOGIN_PAGE, request.url))
     }
 
-    if (requireAdmin.some(path => pathname.startsWith(path)) && !token.qchatAdmin) {
+    if (requireAdmin.some(path => pathname.startsWith(path)) && !token.admin) {
       return NextResponse.rewrite(new URL(UNAUTHORISED_PAGE, request.url))
     }
 
-    if (requireTenantAdmin.some(path => pathname.startsWith(path)) && !token.qchatAdmin) {
+    if (requireTenantAdmin.some(path => pathname.startsWith(path)) && !token.admin) {
       return NextResponse.rewrite(new URL(NOT_TENANT_ADMIN, request.url))
     }
   }

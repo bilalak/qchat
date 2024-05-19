@@ -132,7 +132,7 @@ const getsertUser = async (userGroups: string[], user: User | AdapterUser): Prom
         name: user.name ?? "",
         upn: user.upn,
         userId: user.upn,
-        qchatAdmin: user.qchatAdmin ?? false,
+        admin: user.admin ?? false,
         last_login: now,
         first_login: now,
         accepted_terms: false,
