@@ -8,6 +8,7 @@ import { UserSignInHandler, SignInErrorType } from "./sign-in"
 export interface AuthToken extends JWT {
   admin?: boolean
   tenantAdmin?: boolean
+  globalAdmin?: boolean
   exp: number
   iat: number
   refreshExpiresIn: number
@@ -46,21 +47,24 @@ const configureIdentityProvider = (): Provider[] => {
         userinfo: process.env.AZURE_AD_USERINFO_ENDPOINT,
         profile: profile => {
           const email = profile.email != undefined ? profile.email?.toLowerCase() : profile.upn.toLowerCase()
+          const upn = profile.upn.toLowerCase()
           const admin = adminEmails.includes(email)
-          profile.tenantId = profile.employee_idp
-          profile.secGroups = profile.employee_groups
-          if (process.env.NODE_ENV === "development") {
-            profile.tenantId = profile.tid
-            profile.secGroups = profile.groups
-          }
+          const roles = profile.roles || []
+          const isGlobalAdmin = roles.includes("GlobalAdministrator")
+          const organisation = profile.organization || profile.tenant_display_name || ""
+          profile.tenantId = profile.employee_idp || profile.tid
+          profile.secGroups = profile.employee_groups || profile.groups
           return {
             ...profile,
             id: profile.sub,
             name: profile.name,
-            email: profile.email ?? profile.upn,
-            upn: profile.upn,
+            email: email || upn,
+            upn: upn,
             admin: admin,
-            userId: profile.upn,
+            tenantAdmin: isGlobalAdmin,
+            globalAdmin: isGlobalAdmin,
+            userId: upn,
+            organisation: organisation,
           }
         },
       })
@@ -101,6 +105,7 @@ export const options: NextAuthOptions = {
       if (user) {
         authToken.admin = user.admin ?? false
         authToken.tenantAdmin = user.tenantAdmin ?? false
+        authToken.globalAdmin = user.globalAdmin ?? false
         authToken.tenantId = user.tenantId ?? ""
         authToken.upn = user.upn ?? ""
         authToken.userId = user.userId ?? ""
@@ -114,6 +119,7 @@ export const options: NextAuthOptions = {
       session.user.upn = authToken.upn ? String(authToken.upn) : ""
       session.user.userId = authToken.userId ? String(authToken.userId) : ""
       session.user.tenantAdmin = authToken.tenantAdmin ?? false
+      session.user.globalAdmin = authToken.globalAdmin ?? false
       return session
     },
   },

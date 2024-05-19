@@ -108,12 +108,16 @@ export const UpdateUser = async (
 }
 
 export const GetUserByUpn = async (tenantId: string, upn: string): ServerActionResponseAsync<UserRecord> => {
+  const lowerUpn = upn.toLowerCase()
+  const lowerHashUpn = hashValue(lowerUpn)
+
   const query = {
-    query: "SELECT * FROM c WHERE c.tenantId = @tenantId AND (c.upn = @upn OR c.upn = @hashUpn)",
+    query:
+      "SELECT * FROM c WHERE c.tenantId = @tenantId AND (LOWER(c.upn) = @lowerUpn OR LOWER(c.upn) = @lowerHashUpn)",
     parameters: [
       { name: "@tenantId", value: tenantId },
-      { name: "@upn", value: upn },
-      { name: "@hashUpn", value: hashValue(upn) },
+      { name: "@lowerUpn", value: lowerUpn },
+      { name: "@lowerHashUpn", value: lowerHashUpn },
     ],
   }
   try {

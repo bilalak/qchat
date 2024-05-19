@@ -6,8 +6,8 @@ export type TenantRecord = {
   supportEmail: string
   dateCreated: string | null | undefined
   dateUpdated: string | null | undefined
-  dateOnBoarded: Date | null | undefined
-  dateOffBoarded: Date | null | undefined
+  dateOnBoarded: string | null | undefined
+  dateOffBoarded: string | null | undefined
   modifiedBy: string | null | undefined
   createdBy: string | null | undefined
   departmentName: string | null | undefined

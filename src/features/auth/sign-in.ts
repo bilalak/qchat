@@ -1,6 +1,15 @@
 import { User } from "next-auth"
 import { AdapterUser } from "next-auth/adapters"
 
+import {
+  STATUS_UNAUTHORIZED,
+  STATUS_ERROR,
+  STATUS_NOT_FOUND,
+  STATUS_OK,
+  SUPPORT_EMAIL_PREFIX,
+  CONTEXT_PROMPT_DEFAULT,
+} from "@/app-global"
+
 import { hashValue } from "@/features/auth/helpers"
 import { migrateChatMessagesForCurrentUser } from "@/features/chat/chat-services/chat-message-service"
 import { type TenantRecord } from "@/features/tenant-management/models"
@@ -27,57 +36,79 @@ export type SignInResponse = SignInSuccess | SignInError
 export class UserSignInHandler {
   static async handleSignIn(user: User | AdapterUser, userGroups: string[] = []): Promise<SignInResponse> {
     try {
-      const groupAdmins = process.env.ADMIN_EMAIL_ADDRESS?.split(",").map(string => string.toLowerCase().trim())
+      const admins = process.env.ADMIN_EMAIL_ADDRESS?.split(",").map(email => email.toLowerCase().trim()) || []
       const tenantResponse = await GetTenantById(user.tenantId)
-      console.log("Tenant response:", tenantResponse)
       const userRecord = await getsertUser(userGroups, user)
-      console.log("User record:", userRecord)
+      const onBoardDate = user.globalAdmin ? null : new Date().toISOString()
 
-      if (tenantResponse.status === "ERROR" || tenantResponse.status === "UNAUTHORIZED") {
+      if (tenantResponse.status === STATUS_ERROR || tenantResponse.status === STATUS_UNAUTHORIZED) {
         return {
           success: false,
           errorCode: SignInErrorType.NotAuthorised,
         }
       }
 
-      if (tenantResponse.status === "NOT_FOUND") {
+      if (tenantResponse.status === STATUS_NOT_FOUND) {
         const now = new Date()
         const domain = user.upn?.split("@")[1] || ""
+        const historyMessage = user.globalAdmin
+          ? `${now.toISOString()}: Tenant created by global admin user ${user.upn}.`
+          : `${now.toISOString()}: Tenant created by user ${user.upn} on failed login.`
+
         const tenantRecord: TenantRecord = {
           tenantId: user.tenantId,
           primaryDomain: domain,
           requiresGroupLogin: true,
           id: user.tenantId,
           email: user.upn,
-          supportEmail: `support@${domain}`,
+          supportEmail: SUPPORT_EMAIL_PREFIX + domain,
           dateCreated: now.toISOString(),
           dateUpdated: now.toISOString(),
-          dateOnBoarded: null,
+          dateOnBoarded: onBoardDate,
           dateOffBoarded: null,
           modifiedBy: user.upn,
           createdBy: user.upn,
-          departmentName: null,
+          departmentName: user.organisation,
           groups: [],
-          administrators: groupAdmins,
+          administrators: admins,
           features: [],
           serviceTier: null,
-          history: [`${now}: Tenant created by user ${user.upn} on failed login.`],
-          preferences: { contextPrompt: "" },
+          history: [`${historyMessage}`],
+          preferences: { contextPrompt: CONTEXT_PROMPT_DEFAULT },
         }
         const tenant = await CreateTenant(tenantRecord, user.upn)
-        if (tenant.status !== "OK") throw tenant
+        if (tenant.status !== STATUS_OK) throw tenant
 
+        if (user.globalAdmin) {
+          const userUpdate = {
+            ...resetFailedLogin(userRecord),
+            groups: userGroups,
+          }
+          const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
+          if (updatedUser.status !== STATUS_OK) throw updatedUser
+          return { success: true }
+        }
         const userUpdate = {
           ...updateFailedLogin(userRecord),
           groups: userGroups,
         }
         const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
-        if (updatedUser.status !== "OK") throw updatedUser
-
+        if (updatedUser.status !== STATUS_OK) throw updatedUser
         return { success: false, errorCode: SignInErrorType.NotAuthorised }
       }
 
-      if (tenantResponse.status !== "OK") throw tenantResponse
+      if (user.globalAdmin) {
+        const userUpdate = {
+          ...resetFailedLogin(userRecord),
+          groups: userGroups,
+        }
+        const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
+        if (updatedUser.status !== STATUS_OK) throw updatedUser
+        await migrateChatMessagesForCurrentUser(updatedUser.response.id, user.tenantId)
+        return { success: true }
+      }
+
+      if (tenantResponse.status !== STATUS_OK) throw tenantResponse
       const tenant = tenantResponse.response
 
       if (!tenant.requiresGroupLogin || isUserInRequiredGroups(userGroups, tenant.groups || [])) {
@@ -86,7 +117,7 @@ export class UserSignInHandler {
           groups: userGroups,
         }
         const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
-        if (updatedUser.status !== "OK") throw updatedUser
+        if (updatedUser.status !== STATUS_OK) throw updatedUser
         await migrateChatMessagesForCurrentUser(updatedUser.response.id, user.tenantId)
         return { success: true }
       }
@@ -96,7 +127,7 @@ export class UserSignInHandler {
         groups: userGroups,
       }
       const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
-      if (updatedUser.status !== "OK") throw updatedUser
+      if (updatedUser.status !== STATUS_OK) throw updatedUser
       return { success: false, errorCode: SignInErrorType.NotAuthorised }
     } catch (error) {
       console.error("Error handling sign-in:", error)
@@ -124,7 +155,7 @@ const getsertUser = async (userGroups: string[], user: User | AdapterUser): Prom
     const now = new Date()
     const existingUserResponse = await GetUserByUpn(user.tenantId, user.upn ?? "")
 
-    if (existingUserResponse.status === "NOT_FOUND") {
+    if (existingUserResponse.status === STATUS_NOT_FOUND) {
       const createUserResponse = await CreateUser({
         id: hashValue(user.upn),
         tenantId: user.tenantId,
@@ -141,16 +172,17 @@ const getsertUser = async (userGroups: string[], user: User | AdapterUser): Prom
         failed_login_attempts: 0,
         last_failed_login: null,
         tenantAdmin: user.tenantAdmin ?? false,
+        globalAdmin: user.globalAdmin ?? false,
         history: [`${now}: User created.`],
         preferences: {
-          contextPrompt: "",
+          contextPrompt: CONTEXT_PROMPT_DEFAULT,
           history: [],
         },
       })
-      if (createUserResponse.status !== "OK") throw createUserResponse
+      if (createUserResponse.status !== STATUS_OK) throw createUserResponse
       return createUserResponse.response
     }
-    if (existingUserResponse.status !== "OK") throw existingUserResponse
+    if (existingUserResponse.status !== STATUS_OK) throw existingUserResponse
     return existingUserResponse.response
   } catch (error) {
     console.error("Error upserting user:", error)

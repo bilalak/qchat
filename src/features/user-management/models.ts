@@ -7,6 +7,7 @@ export type UserIdentity = {
   upn: string
   admin: boolean
   tenantAdmin: boolean
+  globalAdmin: boolean
 }
 
 export type UserActivity = {

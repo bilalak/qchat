@@ -14,10 +14,11 @@ const requireAuth: string[] = [
   "/settings",
   "/terms",
   "/whats-new",
+  "/unauthorised/tenantadmin",
 ]
 
-const requireAdmin: string[] = ["/reporting", "/settings/tenant"]
-const requireTenantAdmin: string[] = ["/settings/details"]
+const requireAdmin: string[] = ["/reporting"]
+const requireTenantAdmin: string[] = ["/settings/details", "/settings/tenant"]
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const pathname = request.nextUrl.pathname
@@ -34,7 +35,12 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       return NextResponse.rewrite(new URL(UNAUTHORISED_PAGE, request.url))
     }
 
-    if (requireTenantAdmin.some(path => pathname.startsWith(path)) && !token.admin) {
+    if (
+      requireTenantAdmin.some(path => pathname.startsWith(path)) &&
+      !token.admin &&
+      !token.tenantAdmin &&
+      !token.globalAdmin
+    ) {
       return NextResponse.rewrite(new URL(NOT_TENANT_ADMIN, request.url))
     }
   }

@@ -7,6 +7,7 @@ declare module "next-auth" {
     user: {
       admin: boolean
       tenantAdmin: boolean
+      globalAdmin: boolean
       tenantId: string
       upn: string
       userId: string
@@ -18,7 +19,9 @@ declare module "next-auth" {
   interface User {
     admin: boolean
     tenantAdmin: boolean
+    globalAdmin: boolean
     tenantId: string
+    organisation: string
     upn: string
     userId: string
     secGroups: string[]
