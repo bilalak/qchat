@@ -57,7 +57,16 @@ export const UpdateUser = async (
     const updateTimestamp = new Date().toISOString()
 
     // update user history
-    const keysToTrack: (keyof UserRecord)[] = ["email", "name", "upn", "admin", "first_login", "accepted_terms_date"]
+    const keysToTrack: (keyof UserRecord)[] = [
+      "email",
+      "name",
+      "upn",
+      "admin",
+      "tenantAdmin",
+      "globalAdmin",
+      "first_login",
+      "accepted_terms_date",
+    ]
     for (const key of keysToTrack) {
       if (oldUser[key] !== user[key]) {
         user.history = [

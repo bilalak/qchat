@@ -15,7 +15,7 @@ const requireAuth: string[] = [
   "/whats-new",
 ]
 
-const requireAdmin: string[] = ["/reporting", "/settings/tenant"]
+const requireAdmin: string[] = ["/reporting", "/settings/tenant", "settings/details"]
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const pathname = request.nextUrl.pathname

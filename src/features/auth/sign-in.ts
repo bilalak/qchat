@@ -79,45 +79,40 @@ export class UserSignInHandler {
         const tenant = await CreateTenant(tenantRecord, user.upn)
         if (tenant.status !== STATUS_OK) throw tenant
 
-        if (user.globalAdmin) {
-          const userUpdate = {
-            ...resetFailedLogin(userRecord),
-            groups: userGroups,
-          }
-          const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
-          if (updatedUser.status !== STATUS_OK) throw updatedUser
-          return { success: true }
-        }
-        const userUpdate = {
-          ...updateFailedLogin(userRecord),
-          groups: userGroups,
-        }
-        const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
-        if (updatedUser.status !== STATUS_OK) throw updatedUser
-        return { success: false, errorCode: SignInErrorType.NotAuthorised }
-      }
+        const isTenantAdmin = tenantRecord.administrators.includes(user.upn || user.email || "")
 
-      if (user.globalAdmin) {
         const userUpdate = {
           ...resetFailedLogin(userRecord),
           groups: userGroups,
+          globalAdmin: user.globalAdmin || false,
+          tenantAdmin: isTenantAdmin,
         }
         const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
         if (updatedUser.status !== STATUS_OK) throw updatedUser
         await migrateChatMessagesForCurrentUser(updatedUser.response.id, user.tenantId)
-        return { success: true }
+
+        return user.globalAdmin ? { success: true } : { success: false, errorCode: SignInErrorType.NotAuthorised }
       }
 
       if (tenantResponse.status !== STATUS_OK) throw tenantResponse
       const tenant = tenantResponse.response
 
-      if (!tenant.requiresGroupLogin || isUserInRequiredGroups(userGroups, tenant.groups || [])) {
+      const isTenantAdmin = tenant.administrators.includes(user.upn || user.email || "")
+
+      const userHasRequiredGroupAccess =
+        !tenant.requiresGroupLogin || isUserInRequiredGroups(userGroups, tenant.groups || [])
+
+      if (userHasRequiredGroupAccess) {
         const userUpdate = {
           ...resetFailedLogin(userRecord),
           groups: userGroups,
+          globalAdmin: user.globalAdmin || false,
+          tenantAdmin: isTenantAdmin,
         }
+
         const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
         if (updatedUser.status !== STATUS_OK) throw updatedUser
+
         await migrateChatMessagesForCurrentUser(updatedUser.response.id, user.tenantId)
         return { success: true }
       }
@@ -128,6 +123,7 @@ export class UserSignInHandler {
       }
       const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
       if (updatedUser.status !== STATUS_OK) throw updatedUser
+
       return { success: false, errorCode: SignInErrorType.NotAuthorised }
     } catch (error) {
       console.error("Error handling sign-in:", error)
