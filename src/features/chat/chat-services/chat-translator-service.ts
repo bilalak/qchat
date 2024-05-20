@@ -74,15 +74,53 @@ async function translateFunction(
 export function revertCase(originalText: string, translatedText: string): string {
   const originalWords = originalText.split(/\b/)
   const translatedWords = translatedText.split(/\b/)
+  let result = ""
+  let wordIndex = 0
+
+  while (wordIndex < translatedWords.length) {
+    const originalWord = originalWords[wordIndex] || ""
+    const translatedWord = translatedWords[wordIndex]
+    wordIndex++
+
+    const isUpperWord = /^[A-Z]*$/.test(originalWord)
+    if (isUpperWord) {
+      result += translatedWord.toUpperCase()
+      continue
+    }
+
+    let word = ""
+    for (let index = 0; index < translatedWord.length; index++) {
+      const originalChar = originalWord.charAt(index)
+      const translatedChar = translatedWord[index]
+
+      // not working
+      const skipPatterns = ["`"]
+
+      if (skipPatterns.includes(originalWord)) {
+        result += originalWord
+        continue
+      }
+      // end of not working
+
+      let isUpperChar = false
+      isUpperChar = /[A-Z]/.test(originalChar) || isUpperChar
+      word += isUpperChar ? translatedChar.toUpperCase() : translatedChar
+    }
+
+    result += word
+  }
+
+  return result
+}
+
+export function revertCaseOld(originalText: string, translatedText: string): string {
+  const originalWords = originalText.split(/\b/)
+  const translatedWords = translatedText.split(/\b/)
   let originalIndex = 0
   const result = translatedWords
     .map(translatedWord => {
       const originalWord = originalWords[originalIndex] || ""
       originalIndex++
-
-      if (originalWord.startsWith("`")) {
-        return originalWord
-      }
 
       return [...translatedWord]
         .map((char, index) => {
