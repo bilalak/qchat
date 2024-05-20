@@ -42,7 +42,7 @@ const Home: React.FC = () => {
     <div className="flex h-full items-center justify-center">
       <div className="flex min-w-[300px] flex-col rounded-md bg-altBackground p-8 text-foreground">
         <Typography variant="h3" className="text-xl font-semibold">
-          We do not have you recorded as an agency lead or Global Admin, therefore you are not able to view this page.
+          This page is not yet available, and will only be available to Global Admins or Agency Leds.
           <br />
         </Typography>
         {isLoading && <Typography variant="p">Loading...</Typography>}
@@ -59,6 +59,7 @@ const Home: React.FC = () => {
               <a href={`mailto:${admin}`}>{admin}</a>
             </Typography>
           ))}
+          <br />
         </div>
         <Button onClick={handleRedirectHome} variant="link" ariaLabel="Return Home">
           Please click here to return home.
