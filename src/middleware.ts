@@ -3,7 +3,6 @@ import { getToken } from "next-auth/jwt"
 
 const LOGIN_PAGE = "/login"
 const UNAUTHORISED_PAGE = "/unauthorised"
-const NOT_TENANT_ADMIN = "/unauthorised/tenantadmin"
 
 const requireAuth: string[] = [
   "/api",
@@ -14,11 +13,9 @@ const requireAuth: string[] = [
   "/settings",
   "/terms",
   "/whats-new",
-  "/unauthorised/tenantadmin",
 ]
 
-const requireAdmin: string[] = ["/reporting"]
-const requireTenantAdmin: string[] = ["/settings/details", "/settings/tenant"]
+const requireAdmin: string[] = ["/reporting", "/settings/tenant"]
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const pathname = request.nextUrl.pathname
@@ -31,17 +28,11 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       return NextResponse.redirect(new URL(LOGIN_PAGE, request.url))
     }
 
-    if (requireAdmin.some(path => pathname.startsWith(path)) && !token.admin) {
-      return NextResponse.rewrite(new URL(UNAUTHORISED_PAGE, request.url))
-    }
-
     if (
-      requireTenantAdmin.some(path => pathname.startsWith(path)) &&
-      !token.admin &&
-      !token.tenantAdmin &&
-      !token.globalAdmin
+      requireAdmin.some(path => pathname.startsWith(path)) &&
+      !(token.admin || token.tenantAdmin || token.globalAdmin)
     ) {
-      return NextResponse.rewrite(new URL(NOT_TENANT_ADMIN, request.url))
+      return NextResponse.rewrite(new URL(UNAUTHORISED_PAGE, request.url))
     }
   }
   return NextResponse.next()
