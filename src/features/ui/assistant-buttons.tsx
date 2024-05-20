@@ -1,21 +1,23 @@
 "use client"
 import * as Tooltip from "@radix-ui/react-tooltip"
 import { CheckIcon, ClipboardIcon, ThumbsUp, ThumbsDown, BookOpenText } from "lucide-react"
+// import { CheckIcon, ClipboardIcon, ThumbsUp, ThumbsDown, BookOpenText, Sparkle, Sparkles } from "lucide-react"
 import React from "react"
 
 import Typography from "@/components/typography"
-
-import { Button } from "./button"
-import { TooltipProvider } from "./tooltip-provider"
-import { useWindowSize } from "./windowsize"
+import { Button } from "@/features/ui/button"
+import { TooltipProvider } from "@/features/ui/tooltip-provider"
+import { useWindowSize } from "@/features/ui/windowsize"
 
 interface AssistantButtonsProps {
   isIconChecked: boolean
   thumbsUpClicked: boolean
   thumbsDownClicked: boolean
+  // rewriteWithSuggestions: boolean
   handleCopyButton: () => void
   handleThumbsUpClick: () => void
   handleThumbsDownClick: () => void
+  // handleRewriteWithSuggestions: () => void
 }
 
 interface FleschButtonProps {
@@ -73,9 +75,11 @@ export const AssistantButtons: React.FC<AssistantButtonsProps> = ({
   isIconChecked,
   thumbsUpClicked,
   thumbsDownClicked,
+  // rewriteWithSuggestions,
   handleCopyButton,
   handleThumbsUpClick,
   handleThumbsDownClick,
+  // handleRewriteWithSuggestions,
 }) => {
   const { iconSize, buttonClass } = useButtonStyles()
   return (
@@ -112,6 +116,16 @@ export const AssistantButtons: React.FC<AssistantButtonsProps> = ({
       >
         {thumbsDownClicked ? <CheckIcon size={iconSize} /> : <ThumbsDown size={iconSize} />}
       </Button>
+      {/* <Button
+        variant={"positive"}
+        size={"default"}
+        className={buttonClass}
+        title="Rewrite with suggestions"
+        onClick={handleRewriteWithSuggestions}
+        ariaLabel="Rewrite with suggestions"
+      >
+        {rewriteWithSuggestions ? <Sparkles size={iconSize} /> : <Sparkle size={iconSize} />}
+      </Button> */}
     </div>
   )
 }
