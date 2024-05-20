@@ -90,26 +90,20 @@ export function revertCase(originalText: string, translatedText: string): string
 
     let word = ""
     for (let index = 0; index < translatedWord.length; index++) {
+      if (index >= originalWord.length) {
+        word += translatedWord.substring(index)
+        continue
+      }
+
       const originalChar = originalWord.charAt(index)
       const translatedChar = translatedWord[index]
 
-      // not working
-      const skipPatterns = ["`"]
-
-      if (skipPatterns.includes(originalWord)) {
-        result += originalWord
-        continue
-      }
-      // end of not working
-
-      let isUpperChar = false
-      isUpperChar = /[A-Z]/.test(originalChar) || isUpperChar
-      word += isUpperChar ? translatedChar.toUpperCase() : translatedChar
+      if (!/[A-Z]|[a-z]/.test(originalChar)) word += originalChar
+      else if (/[A-Z]/.test(originalChar)) word += translatedChar.toUpperCase()
+      else word += translatedChar
     }
-
     result += word
   }
-
   return result
 }
 
@@ -121,6 +115,10 @@ export function revertCaseOld(originalText: string, translatedText: string): str
     .map(translatedWord => {
       const originalWord = originalWords[originalIndex] || ""
       originalIndex++
+
+      if (originalWord.startsWith("`")) {
+        return originalWord
+      }
 
       return [...translatedWord]
         .map((char, index) => {

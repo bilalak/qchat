@@ -97,11 +97,11 @@ describe("translator", () => {
     expect(actual).toBe(expected)
   })
 
-  it("should handle missing original words", () => {
+  it("should handle case and special char", () => {
     // Arrange
-    const originalText = "Hello W suMmarization QCHAT!"
-    const translatedText = "hello world w summarisation qchat!"
-    const expected = "Hello World W suMmarisation QCHAT!"
+    const originalText = "Hi! `color`@!#'SUMMARIZE'"
+    const translatedText = "hi! 'colour'@!#'summarise'"
+    const expected = "Hi! `colour`@!#'SUMMARISE'"
 
     // Act
     const actual = revertCase(originalText, translatedText)

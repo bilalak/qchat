@@ -7,7 +7,7 @@ const config = {
   preset: "ts-jest",
   testEnvironment: "node",
   collectCoverage: true,
-  coverageDirectory: "coverage",
+  coverageDirectory: "./tests/unit/coverage",
   coverageProvider: "v8",
   roots: ["./tests/unit/"],
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: "<rootDir>/" }),
