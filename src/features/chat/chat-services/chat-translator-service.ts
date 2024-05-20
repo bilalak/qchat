@@ -14,23 +14,25 @@ export const extractCitations = (context: string): { text: string; citations: st
 }
 
 export async function translator(input: string): ServerActionResponseAsync<string> {
-  const codeBlockPattern = /(```[\s\S]*?```)/gs
-  const codeBlocks: string[] = []
-  let i = 0
-
-  const processedText = input.replace(codeBlockPattern, match => {
-    codeBlocks.push(match)
-    return ` __codeblock_${i++}__ `
-  })
-
   try {
-    const translatedTexts = await translateFunction([{ text: processedText.toLowerCase() }], "en-GB", "en-US")
-    let result = translatedTexts.length <= 0 ? processedText : revertCase(processedText, translatedTexts[0])
-
-    codeBlocks.forEach((codeBlock, index) => {
-      codeBlock += " "
-      result = result.replace(`__codeblock_${index}__`, codeBlock)
+    // Extract code blocks from the input text
+    const codeBlocks: string[] = []
+    const processedText = input.replace(/(```[\s\S]*?```)/g, match => {
+      codeBlocks.push(match)
+      return `__codeblock_${codeBlocks.length - 1}__`
     })
+
+    // Translate the text
+    const translatedTexts = await translateFunction([{ text: processedText.toLowerCase() }], "en-GB", "en-US")
+
+    // Revert the case of the translated text
+    const revertedText = translatedTexts.length <= 0 ? processedText : revertCase(processedText, translatedTexts[0])
+
+    // Replace the code blocks back to the original text
+    const result = codeBlocks.reduce(
+      (acc, codeBlock, index) => acc.replace(`__codeblock_${index}__`, `${codeBlock}`),
+      revertedText
+    )
 
     return { status: "OK", response: result }
   } catch (error) {
@@ -69,7 +71,7 @@ async function translateFunction(
   throw new Error("Translation API returned an error response.")
 }
 
-function revertCase(originalText: string, translatedText: string): string {
+export function revertCase(originalText: string, translatedText: string): string {
   const originalWords = originalText.split(/\b/)
   const translatedWords = translatedText.split(/\b/)
   let originalIndex = 0
