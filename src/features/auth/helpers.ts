@@ -30,7 +30,7 @@ export const isTenantAdmin = async (): Promise<boolean> => {
   if (!userModel) throw new Error("User not found")
   const tenant = await GetTenantById(userModel.tenantId)
   if (tenant.status !== "OK") throw new Error("Tenant not found")
-  return tenant.response.administrators.includes(userModel.upn)
+  return tenant.response.administrators.includes(userModel.upn || userModel.email)
 }
 
 export const getTenantId = async (): Promise<string> => {
