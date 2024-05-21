@@ -13,59 +13,129 @@ import { CardSkeleton } from "@/features/ui/card-skeleton"
 
 interface PromptFormProps {}
 
+interface ErrorResponse {
+  error?: string | { errors: string[] }
+  message?: string
+}
+
 export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
   const [tenant, setTenant] = useState<TenantDetails>()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [serverErrors, setServerErrors] = useState({ contextPrompt: false })
+  const [isSubmittingContextPrompt, setIsSubmittingContextPrompt] = useState(false)
+  const [isSubmittingGroups, setIsSubmittingGroups] = useState(false)
+  const [serverErrors, setServerErrors] = useState({ contextPrompt: false, groups: false })
   const [isLoading, setIsLoading] = useState(true)
   const [contextPrompt, setContextPrompt] = useState("")
 
+  const fetchDetails = async (): Promise<TenantDetails> => {
+    const res = await fetch("/api/tenant/details", { method: "GET" })
+    return (await res.json()).data as TenantDetails
+  }
+
   useEffect(() => {
-    async function fetchDetails(): Promise<TenantDetails> {
-      const res = await fetch("/api/tenant/details", { method: "GET" })
-      return (await res.json()).data as TenantDetails
-    }
     fetchDetails()
       .then(res => {
         setTenant(res)
         setContextPrompt(res.preferences.contextPrompt)
       })
       .catch(err => {
-        console.error("Failed to fetch tenant preferences:", err)
-        showError("Tenant settings couldn't be loaded, please try again.")
+        showError(
+          "Tenant settings couldn't be loaded, please try again. Error Details: " + (err.message || "Unknown Error")
+        )
       })
       .finally(() => setIsLoading(false))
   }, [])
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+  const extractErrorMessage = (data: ErrorResponse): string => {
+    if (typeof data.error === "string") {
+      return data.error
+    }
+    if (data.error && Array.isArray(data.error.errors)) {
+      return data.error.errors.join(", ")
+    }
+    return data.message || "An unexpected error occurred"
+  }
+
+  const parseJSON = async (response: Response): Promise<ErrorResponse> => {
+    const text = await response.text()
+    if (!text) {
+      return {} // Return an empty object if the response body is empty
+    }
+    try {
+      return JSON.parse(text)
+    } catch (error) {
+      console.error("Error parsing JSON response:", error)
+      return {}
+    }
+  }
+
+  const handleSubmitContextPrompt = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
     const newContextPrompt = new FormData(e.currentTarget).get("contextPrompt") as string
 
-    setIsSubmitting(true)
-    setServerErrors({ contextPrompt: false })
+    setIsSubmittingContextPrompt(true)
+    setServerErrors({ ...serverErrors, contextPrompt: false })
 
     const temp = tenant?.preferences.contextPrompt || ""
     setContextPrompt(newContextPrompt)
 
     const response = await fetch("/api/tenant/details", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         contextPrompt: newContextPrompt,
       }),
     })
+
+    const data: ErrorResponse = await parseJSON(response)
+
     if (!response.ok) {
-      showError("Context prompt could not be updated. Please try again later.")
+      showError(extractErrorMessage(data))
       setContextPrompt(temp)
+      setServerErrors({ ...serverErrors, contextPrompt: true })
     } else {
       showSuccess({ title: "Success", description: "Context prompt updated successfully!" })
+      await fetchDetails().then(res => setTenant(res))
       ;(e.target as HTMLFormElement)?.reset()
     }
 
-    setIsSubmitting(false)
+    setIsSubmittingContextPrompt(false)
+  }
+
+  const handleSubmitGroups = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault()
+    const newGroupGuids = new FormData(e.currentTarget).get("newGroups") as string
+
+    setIsSubmittingGroups(true)
+    setServerErrors({ ...serverErrors, groups: false })
+
+    const response = await fetch("/api/tenant/details", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        groups: newGroupGuids.split(",").map(guid => guid.trim()),
+      }),
+    })
+
+    const data: ErrorResponse = await parseJSON(response)
+
+    if (!response.ok) {
+      showError(extractErrorMessage(data))
+      setServerErrors({ ...serverErrors, groups: true })
+    } else {
+      showSuccess({ title: "Success", description: "Groups updated successfully!" })
+      await fetchDetails().then(res => setTenant(res))
+      ;(e.target as HTMLFormElement)?.reset()
+    }
+
+    setIsSubmittingGroups(false)
   }
 
   return (
-    <Form.Root className="grid size-full w-full grid-cols-1 gap-8 pt-5 md:grid-cols-2" onSubmit={handleSubmit}>
+    <div className="grid size-full w-full grid-cols-1 gap-8 p-4 pt-5 md:grid-cols-2">
       <div className="mb-4">
         <Typography variant="h4" className="font-bold underline underline-offset-2">
           Department Information
@@ -75,39 +145,48 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
           message. This setting is regularly audited by the Queensland Government AI Unit.
         </Typography>
         <Typography variant="h5">Current Prompt:</Typography>
-        <div className="mt-2 rounded-md border-2 p-2">
+        <div className="mt-2 rounded-md bg-altBackgroundShade p-4">
           {isLoading ? <CardSkeleton /> : <Markdown content={contextPrompt || "Not set"} />}
         </div>
-        <Form.Field className="mb-4 mt-2" name="contextPrompt" serverInvalid={serverErrors.contextPrompt}>
-          <Form.Label htmlFor="contextPrompt" className="block">
-            New Context Prompt:
-          </Form.Label>
-          <Form.Control asChild>
-            <textarea
-              id="contextPrompt"
-              className="mt-2 w-full rounded-md border-2 p-2"
-              placeholder="Enter new context prompt..."
-              rows={8}
-              maxLength={500}
-              required
-            />
-          </Form.Control>
-          {serverErrors.contextPrompt && (
-            <Form.Message role="alert" className="text-QLD-alert mt-2">
-              Error updating context prompt. Please try again.
-            </Form.Message>
+        <Form.Root className="mb-4 mt-2" onSubmit={handleSubmitContextPrompt}>
+          <Form.Field name="contextPrompt" serverInvalid={serverErrors.contextPrompt}>
+            <Form.Label htmlFor="contextPrompt" className="block">
+              New Context Prompt:
+            </Form.Label>
+            <Form.Control asChild>
+              <textarea
+                id="contextPrompt"
+                className="my-4 w-full rounded-md border-2 p-2"
+                placeholder="Enter new context prompt..."
+                rows={8}
+                maxLength={500}
+                required
+              />
+            </Form.Control>
+            {serverErrors.contextPrompt && (
+              <Form.Message role="alert" className="text-QLD-alert mt-2">
+                Error updating context prompt. Please try again.
+              </Form.Message>
+            )}
+          </Form.Field>
+          {!isLoading && (
+            <Form.Submit asChild>
+              <Button type="submit" variant="default" disabled={isSubmittingContextPrompt}>
+                {isSubmittingContextPrompt ? "Updating..." : "Update Context Prompt"}
+              </Button>
+            </Form.Submit>
           )}
-        </Form.Field>
-        {!isLoading && (
-          <Form.Submit asChild>
-            <Button type="submit" variant="default" disabled={isSubmitting}>
-              {isSubmitting ? "Updating..." : "Update"}
-            </Button>
-          </Form.Submit>
+        </Form.Root>
+        {isLoading ? (
+          <CardSkeleton />
+        ) : (
+          <>
+            <Typography variant="h5" className="mt-4">
+              Current System Prompt:
+            </Typography>
+            <SystemPrompt />
+          </>
         )}
-        <Typography variant="p" className="mt-4">
-          Current System Prompt: <SystemPrompt />
-        </Typography>
       </div>
       <div>
         <Typography variant="h5" className="mb-4">
@@ -125,7 +204,7 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
           {isLoading ? (
             <CardSkeleton />
           ) : (
-            <div>
+            <div className="mt-2 rounded-md bg-altBackgroundShade p-4">
               <b>{tenant?.supportEmail}</b>
             </div>
           )}
@@ -135,7 +214,7 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
           {isLoading ? (
             <CardSkeleton />
           ) : (
-            <div>
+            <div className="mt-2 rounded-md bg-altBackgroundShade p-4">
               <b>{tenant?.departmentName}</b>
             </div>
           )}
@@ -146,13 +225,57 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
             <CardSkeleton />
           ) : (
             tenant?.administrators?.map(admin => (
-              <div key={admin}>
+              <div className="mt-2 rounded-md bg-altBackgroundShade p-4" key={admin}>
                 <b>{admin}</b>
               </div>
             ))
           )}
         </Typography>
+        <Typography variant="h5" className="mb-4">
+          Current Groups:
+          {isLoading ? (
+            <CardSkeleton />
+          ) : (
+            tenant?.groups?.map(group => (
+              <div className="mt-2 rounded-md bg-altBackgroundShade p-4" key={group}>
+                <b>{group}</b>
+              </div>
+            ))
+          )}
+        </Typography>
+        <Form.Root className="my-4" onSubmit={handleSubmitGroups}>
+          <Form.Field name="newGroups" serverInvalid={serverErrors.groups}>
+            <Form.Label htmlFor="newGroups" className="block">
+              Add New Group GUIDs (comma-separated):
+            </Form.Label>
+            <Form.Control asChild>
+              <input
+                type="text"
+                id="newGroups"
+                className="my-4 w-full rounded-md border-2 p-2"
+                placeholder="Enter new group GUIDs..."
+              />
+            </Form.Control>
+            {serverErrors.groups && (
+              <Form.Message role="alert" className="text-QLD-alert my-4">
+                Error updating groups. Please try again.
+              </Form.Message>
+            )}
+          </Form.Field>
+          {!isLoading && (
+            <Form.Submit asChild>
+              <Button type="submit" variant="default" className="my-4 justify-end" disabled={isSubmittingGroups}>
+                {isSubmittingGroups ? "Updating..." : "Update Groups"}
+              </Button>
+            </Form.Submit>
+          )}
+        </Form.Root>
       </div>
-    </Form.Root>
+    </div>
   )
 }
+
+//TODO: Add a call to API tenant groups to validate the groups exist.
+// Reminder groups locally are different from the groups returned from TUO - see authapi.
+// Add a clear prompt button
+// Add a delete group option

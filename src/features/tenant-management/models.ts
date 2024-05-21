@@ -35,5 +35,6 @@ export type TenantDetails = {
   supportEmail: string
   departmentName: string
   administrators: string[]
+  groups: string[]
   preferences: TenantPreferences
 }
