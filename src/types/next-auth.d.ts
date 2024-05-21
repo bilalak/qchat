@@ -21,7 +21,6 @@ declare module "next-auth" {
     tenantAdmin: boolean
     globalAdmin: boolean
     tenantId: string
-    organisation: string
     upn: string
     userId: string
     secGroups: string[]

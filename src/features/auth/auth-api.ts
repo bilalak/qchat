@@ -6,9 +6,9 @@ import AzureADProvider from "next-auth/providers/azure-ad"
 import { UserSignInHandler, SignInErrorType } from "./sign-in"
 
 export interface AuthToken extends JWT {
-  admin?: boolean
-  globalAdmin?: boolean
-  tenantAdmin?: boolean
+  admin: boolean
+  globalAdmin: boolean
+  tenantAdmin: boolean
   exp: number
   iat: number
   refreshExpiresIn: number
@@ -33,6 +33,7 @@ const configureIdentityProvider = (): Provider[] => {
             client_id: process.env.AZURE_AD_CLIENT_ID,
             redirect_uri: process.env.NEXTAUTH_URL + "/api/auth/callback/azure-ad",
             response_type: "code",
+            scope: "openid profile email User.Read",
           },
         },
         token: {
@@ -49,9 +50,8 @@ const configureIdentityProvider = (): Provider[] => {
           const upn = profile.upn.toLowerCase()
           const email = profile.email != undefined ? profile.email?.toLowerCase() : upn
 
-          const admin = adminEmails.includes(email || upn)
-          const globalAdmin = profile.roles?.includes("GlobalAdmin")
-          const organisation = profile.organization || profile.tenant_display_name || ""
+          const admin = adminEmails.includes(email || upn) ? true : false
+          const globalAdmin = profile.roles?.includes("GlobalAdmin") ? true : false
 
           profile.tenantId = profile.employee_idp || profile.tid
           profile.secGroups = profile.employee_groups || profile.groups
@@ -59,13 +59,12 @@ const configureIdentityProvider = (): Provider[] => {
             ...profile,
             id: profile.sub,
             name: profile.name,
-            email: email || upn,
+            email: email,
             upn: upn,
             admin: admin,
             globalAdmin: globalAdmin,
-            tenantAdmin: false,
+            tenantAdmin: globalAdmin,
             userId: upn,
-            organisation: organisation,
           }
         },
       })

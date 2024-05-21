@@ -68,7 +68,7 @@ export class UserSignInHandler {
           dateOffBoarded: null,
           modifiedBy: user.upn,
           createdBy: user.upn,
-          departmentName: user.organisation,
+          departmentName: null,
           groups: [],
           administrators: admins,
           features: [],
@@ -79,12 +79,12 @@ export class UserSignInHandler {
         const tenant = await CreateTenant(tenantRecord, user.upn)
         if (tenant.status !== STATUS_OK) throw tenant
 
-        const isTenantAdmin = tenantRecord.administrators.includes(user.upn || user.email || "")
+        const isTenantAdmin = tenantRecord.administrators.includes(user.upn || user.email || "") ? true : false
 
         const userUpdate = {
           ...resetFailedLogin(userRecord),
           groups: userGroups,
-          globalAdmin: user.globalAdmin || false,
+          globalAdmin: user.globalAdmin,
           tenantAdmin: isTenantAdmin,
         }
         const updatedUser = await UpdateUser(user.tenantId, user.userId, userUpdate)
@@ -97,7 +97,7 @@ export class UserSignInHandler {
       if (tenantResponse.status !== STATUS_OK) throw tenantResponse
       const tenant = tenantResponse.response
 
-      const isTenantAdmin = tenant.administrators.includes(user.upn || user.email || "")
+      const isTenantAdmin = tenant.administrators.includes(user.upn || user.email || "") ? true : false
 
       const userHasRequiredGroupAccess =
         !tenant.requiresGroupLogin || isUserInRequiredGroups(userGroups, tenant.groups || [])
