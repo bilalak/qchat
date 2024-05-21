@@ -74,6 +74,8 @@ const configureIdentityProvider = (): Provider[] => {
   return providers
 }
 
+//TODO - Figure out and assign tenant admin here?
+
 export const options: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   providers: [...configureIdentityProvider()],
