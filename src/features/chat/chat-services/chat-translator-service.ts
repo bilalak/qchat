@@ -6,7 +6,7 @@ export async function translator(input: string): ServerActionResponseAsync<strin
   try {
     // Extract code blocks from the input text
     const codeBlocks: string[] = []
-    const processedText = input.replace(/(```[\s\S]*?```)/gs, match => {
+    const processedText = input.replace(/(```[\s\S]*?```)/g, match => {
       codeBlocks.push(match)
       return `__codeblock_${codeBlocks.length - 1}__`
     })
