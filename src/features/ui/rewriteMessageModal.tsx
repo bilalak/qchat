@@ -34,17 +34,13 @@ export default function RewriteMessageModal(props: ModalProps): ReturnType<FC> {
             id={props.chatMessageId + "Rewrite text id"}
             aria-label="Enter your feedback"
             placeholder=""
+            defaultValue={rewriteTexts(props.rewriteAction, props.message)}
             rows={15}
             className="flex min-h-[80px] w-full rounded-md border border-gray-300 border-input bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            value={rewriteTexts(props.rewriteAction, props.message)}
-            // onChange={event => props.onFeedbackReasonChange(event.target.value)}
+            // value={rewriteTexts(props.rewriteAction, props.message)}
+            // onChange={event => event.target.value}
           />
         </div>
-
-        {/* <FeedbackButtons
-          selectedType={props.feedbackType ?? FeedbackType.None}
-          onFeedbackTypeChange={props.onFeedbackTypeChange}
-        /> */}
         <div className="mt-4 flex justify-center gap-2">
           <Button variant="default" onClick={props.onSubmit} disabled={false}>
             {props.rewriteAction}
@@ -61,11 +57,11 @@ export default function RewriteMessageModal(props: ModalProps): ReturnType<FC> {
 const rewriteTexts = (action: ModalProps["rewriteAction"], message: string): string => {
   switch (action) {
     case "Simplify":
-      return `Simplify the below, consider length, readability and tone of voice:\n\n===Text to simplify===\n${message}\n===End of text to simplify===`
+      return `Simplify the text below, consider length, readability and tone of voice:\n\n===Text to simplify===\n${message}\n===End of text to simplify===`
     case "Improve":
-      return `Improve the below, consider inclusive language, length, readability and tone of voice:\n\n===Text to improve===\n${message}\n===End of text to improve===`
+      return `Improve the text below, consider inclusive language, length, readability and tone of voice:\n\n===Text to improve===\n${message}\n===End of text to improve===`
     case "Explain":
-      return `If Content Safety shown - Explain why the below as it is not in line with our safety or ethical checks:\n\n===Text to reword===\n${message}\n===End of text to reword===`
+      return `Explain why the text below is not in line with our safety or ethical checks:\n\n===Text to reword===\n${message}\n===End of text to reword===`
     default:
       return "Unknown action"
   }
