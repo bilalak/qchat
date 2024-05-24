@@ -3,8 +3,18 @@ import { NextRequest, NextResponse } from "next/server"
 import { getToken, JWT } from "next-auth/jwt"
 import * as yup from "yup"
 
+import { userSession } from "@/features/auth/helpers"
+import { GetTenantById, UpdateTenant } from "@/features/tenant-management/tenant-service"
+
 const groupValidationSchema = yup
   .object({
+    groupGuids: yup.array().of(yup.string().required()).required(),
+  })
+  .noUnknown(true, "Attempted to validate invalid fields")
+
+const groupDeleteValidationSchema = yup
+  .object({
+    tenantId: yup.string().required(),
     groupGuids: yup.array().of(yup.string().required()).required(),
   })
   .noUnknown(true, "Attempted to validate invalid fields")
@@ -74,6 +84,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       status: error instanceof yup.ValidationError ? 400 : 500,
     })
   }
+}
+
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  const [requestBody, user] = await Promise.all([request.json(), userSession()])
+  const validatedData = await groupDeleteValidationSchema.validate(
+    { ...requestBody, tenantId: user?.tenantId },
+    {
+      abortEarly: false,
+      stripUnknown: true,
+    }
+  )
+  const { groupGuids: groupsToDelete, tenantId } = validatedData
+
+  const existingTenantResult = await GetTenantById(tenantId)
+  if (existingTenantResult.status !== "OK") {
+    return new NextResponse(JSON.stringify({ error: "Tenant not found" }), { status: 404 })
+  }
+  if (!user || !existingTenantResult.response.administrators.includes(user.email)) {
+    return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
+  }
+
+  const updatedGroups = existingTenantResult.response.groups.filter(
+    group => !groupsToDelete.some(toDelete => toDelete.toLowerCase() === group.toLowerCase())
+  )
+
+  const updatedTenantResult = await UpdateTenant({ ...existingTenantResult.response, groups: updatedGroups })
+  if (updatedTenantResult.status === "OK") {
+    return new NextResponse(JSON.stringify(updatedTenantResult.response), { status: 200 })
+  }
+  return new NextResponse(JSON.stringify({ error: "Failed to update tenant" }), { status: 400 })
 }
 
 export const GET = (): NextResponse =>
