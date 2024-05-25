@@ -52,5 +52,6 @@ export const config = {
     "/terms/:path*",
     "/unauthorised/:path*",
     "/whats-new/:path*",
+    "/:path*",
   ],
 }
