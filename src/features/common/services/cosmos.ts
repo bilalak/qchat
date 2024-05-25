@@ -12,7 +12,7 @@ let _tokenRefreshTimer: NodeJS.Timeout | null = null
 
 const fetchAndSetAuthToken = async (): Promise<void> => {
   const token = await GetCosmosAccessToken()
-  const expiry = Date.now() + 23 * 60 * 60 * 1000 // Set expiry time to 23 hours from now
+  const expiry = Date.now() + 23 * 60 * 60 * 1000
   _authToken = { token, expiry }
   _cosmosClient = createCosmosClient(token)
   scheduleTokenRefresh()
@@ -22,7 +22,7 @@ const scheduleTokenRefresh = (): void => {
   if (_tokenRefreshTimer) {
     clearTimeout(_tokenRefreshTimer)
   }
-  _tokenRefreshTimer = setTimeout(fetchAndSetAuthToken, 23 * 60 * 60 * 1000) // 23 hours in milliseconds
+  _tokenRefreshTimer = setTimeout(fetchAndSetAuthToken, 23 * 60 * 60 * 1000)
 }
 
 const createCosmosClient = (authToken: string): CosmosClient => {
