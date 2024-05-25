@@ -21,7 +21,6 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const pathname = request.nextUrl.pathname
   const response = NextResponse.next()
 
-  // Apply no-cache headers to specific paths and CSS files
   if (pathname.startsWith("/_next/static/chunks/app/") || pathname.endsWith(".css")) {
     response.headers.set("Cache-Control", "private, max-age=0, no-cache")
   }
@@ -56,6 +55,5 @@ export const config = {
     "/unauthorised/:path*",
     "/whats-new/:path*",
     "/_next/static/chunks/app/:path*",
-    "/:path*",
   ],
 }
