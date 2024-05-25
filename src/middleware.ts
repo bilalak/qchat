@@ -19,10 +19,9 @@ const requireAdmin: string[] = ["/reporting", "/settings"]
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const pathname = request.nextUrl.pathname
-  const response = NextResponse.next()
 
-  if (pathname.startsWith("/_next/static/chunks/app/") || pathname.endsWith(".css")) {
-    response.headers.set("Cache-Control", "private, max-age=0, no-cache")
+  if (request.nextUrl.pathname.endsWith(".css") || request.nextUrl.pathname.includes("_next")) {
+    request.headers.set("Cache-Control", "no-store")
   }
 
   if (requireAuth.some(path => pathname.startsWith(path))) {
@@ -37,8 +36,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       return NextResponse.rewrite(new URL(UNAUTHORISED_PAGE, request.url))
     }
   }
-
-  return response
+  return NextResponse.next()
 }
 
 export const config = {
@@ -54,6 +52,5 @@ export const config = {
     "/terms/:path*",
     "/unauthorised/:path*",
     "/whats-new/:path*",
-    "/_next/static/chunks/app/:path*",
   ],
 }
