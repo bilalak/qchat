@@ -20,6 +20,10 @@ const requireAdmin: string[] = ["/reporting", "/settings"]
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const pathname = request.nextUrl.pathname
 
+  if (request.nextUrl.pathname.endsWith(".css")) {
+    request.headers.set("Cache-Control", "no-store")
+  }
+
   if (requireAuth.some(path => pathname.startsWith(path))) {
     const token = await getToken({ req: request })
 
