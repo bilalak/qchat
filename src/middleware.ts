@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   // Apply no-cache headers to specific paths and CSS files
   if (pathname.startsWith("/_next/static/chunks/app/") || pathname.endsWith(".css")) {
-    response.headers.set("Cache-Control", "no-store")
+    response.headers.set("Cache-Control", "private, max-age=0, no-cache")
   }
 
   if (requireAuth.some(path => pathname.startsWith(path))) {
