@@ -47,7 +47,7 @@ This approach helps us interact with you in the most effective and considerate m
   useEffect(() => {
     if (!session?.user) return
     async function fetchPreferences(): Promise<UserPreferences> {
-      const res = await fetch("/api/user/details", { method: "GET" })
+      const res = await fetch("/api/user/details", { method: "GET", cache: "no-store" })
       return (await res.json()).data as UserPreferences
     }
     fetchPreferences()
@@ -74,6 +74,7 @@ This approach helps us interact with you in the most effective and considerate m
 
     const response = await fetch("/api/user/details", {
       method: "POST",
+      cache: "no-store",
       body: JSON.stringify({
         contextPrompt: newContextPrompt,
         upn: session.user.upn,

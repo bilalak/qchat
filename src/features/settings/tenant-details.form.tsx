@@ -31,7 +31,7 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
   const [deleteGroupId, setDeleteGroupId] = useState("")
 
   const fetchDetails = async (): Promise<TenantDetails> => {
-    const res = await fetch("/api/tenant/details", { method: "GET" })
+    const res = await fetch("/api/tenant/details", { method: "GET", cache: "no-store" })
     return (await res.json()).data as TenantDetails
   }
 
@@ -85,6 +85,7 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
 
     const response = await fetch("/api/tenant/details", {
       method: "POST",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
       },
@@ -117,6 +118,7 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
 
     const response = await fetch("/api/tenant/details", {
       method: "POST",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
       },
@@ -145,6 +147,7 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
 
     const response = await fetch("/api/tenant/groups", {
       method: "DELETE",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
       },

@@ -18,7 +18,7 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     async function fetchDetails(): Promise<TenantDetails> {
-      const res = await fetch("/api/tenant/details", { method: "GET" })
+      const res = await fetch("/api/tenant/details", { method: "GET", cache: "no-store" })
       return (await res.json()).data as TenantDetails
     }
     fetchDetails()
