@@ -33,6 +33,7 @@ export async function translator(input: string): ServerActionResponseAsync<strin
 
     return { status: "OK", response: result }
   } catch (error) {
+    //TODO handle error
     console.error(error)
     return { status: "ERROR", errors: [{ message: "Translation failed" }] }
   }

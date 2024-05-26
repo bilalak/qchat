@@ -126,6 +126,7 @@ export class UserSignInHandler {
 
       return { success: false, errorCode: SignInErrorType.NotAuthorised }
     } catch (error) {
+      // TODO handle error
       console.error("Error handling sign-in:", error)
       return { success: false, errorCode: SignInErrorType.SignInFailed }
     }
@@ -181,6 +182,7 @@ const getsertUser = async (userGroups: string[], user: User | AdapterUser): Prom
     if (existingUserResponse.status !== STATUS_OK) throw existingUserResponse
     return existingUserResponse.response
   } catch (error) {
+    // TODO handle error
     console.error("Error upserting user:", error)
     throw error
   }

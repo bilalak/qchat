@@ -1,14 +1,17 @@
 "use client"
 
+import DOMPurify from "dompurify"
 import { useRouter } from "next/navigation"
 import React, { useEffect, useState } from "react"
 
 import Typography from "@/components/typography"
 import { showError } from "@/features/globals/global-message-store"
+import { useAppInsightsContext } from "@/features/insights/app-insights-context"
 import { TenantDetails } from "@/features/tenant-management/models"
 import { Button } from "@/features/ui/button"
 
 const Home: React.FC = () => {
+  const { logError } = useAppInsightsContext()
   const router = useRouter()
   const [administrators, setAdministrators] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -23,18 +26,22 @@ const Home: React.FC = () => {
         setAdministrators(res.administrators)
       })
       .catch(err => {
-        console.error("Failed to fetch tenant preferences:", err)
+        logError(new Error("Failed to fetch tenant preferences:", err))
         showError("Tenant administrators couldn't be loaded, please try again.")
       })
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [logError])
 
   const handleRedirectHome = async (): Promise<void> => {
     try {
       await router.push("/")
       router.refresh()
     } catch (error) {
-      console.error("Redirect failed:", error)
+      if (error instanceof Error) {
+        logError(new Error("Redirect failed"), { error: error.message })
+      } else {
+        logError(new Error("Redirect failed with an unknown error"))
+      }
     }
   }
 
@@ -56,7 +63,7 @@ const Home: React.FC = () => {
         <div className="mt-2">
           {administrators.map(admin => (
             <Typography variant="p" key={admin} className="mt-2 hover:underline">
-              <a href={`mailto:${admin}`}>{admin}</a>
+              <a href={`mailto:${DOMPurify.sanitize(admin)}`}>{DOMPurify.sanitize(admin)}</a>
             </Typography>
           ))}
           <br />

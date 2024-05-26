@@ -7,6 +7,7 @@ import React, { useState, FormEvent, useEffect } from "react"
 import { Markdown } from "@/components/markdown/markdown"
 import Typography from "@/components/typography"
 import { showError, showSuccess } from "@/features/globals/global-message-store"
+import { useAppInsightsContext } from "@/features/insights/app-insights-context"
 import { Button } from "@/features/ui/button"
 import { CardSkeleton } from "@/features/ui/card-skeleton"
 import { UserPreferences } from "@/features/user-management/models"
@@ -14,6 +15,7 @@ import { UserPreferences } from "@/features/user-management/models"
 interface PromptFormProps {}
 
 export const UserDetailsForm: React.FC<PromptFormProps> = () => {
+  const { logError } = useAppInsightsContext()
   const { data: session } = useSession()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [serverErrors, setServerErrors] = useState({ contextPrompt: false })
@@ -50,12 +52,12 @@ This approach helps us interact with you in the most effective and considerate m
     }
     fetchPreferences()
       .then(res => setContextPrompt(res.contextPrompt))
-      .catch(err => {
-        console.error("Failed to fetch user preferences:", err)
+      .catch(error => {
+        logError(new Error("Failed to fetch user preferences"), { error: error.message })
         showError("User settings couldn't be loaded, please try again.")
       })
       .finally(() => setIsLoading(false))
-  }, [session])
+  }, [logError, session])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()

@@ -7,6 +7,7 @@ import React, { useState, FormEvent, useEffect } from "react"
 import { Markdown } from "@/components/markdown/markdown"
 import Typography from "@/components/typography"
 import { showError, showSuccess } from "@/features/globals/global-message-store"
+import { useAppInsightsContext } from "@/features/insights/app-insights-context"
 import { TenantDetails } from "@/features/tenant-management/models"
 import SystemPrompt from "@/features/theme/readable-systemprompt"
 import { Button } from "@/features/ui/button"
@@ -20,6 +21,7 @@ interface ErrorResponse {
 }
 
 export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
+  const { logError, logEvent } = useAppInsightsContext()
   const [tenant, setTenant] = useState<TenantDetails>()
   const [isSubmittingContextPrompt, setIsSubmittingContextPrompt] = useState(false)
   const [isSubmittingGroups, setIsSubmittingGroups] = useState(false)
@@ -41,11 +43,12 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
       })
       .catch(err => {
         showError(
-          "Tenant settings couldn't be loaded, please try again. Error Details: " + (err.message || "Unknown Error")
+          "Tenant settings couldn't be loaded, please try again. Error Details: " + (err.message || "Unknown Error"),
+          logError
         )
       })
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [logError])
 
   const extractErrorMessage = (data: ErrorResponse): string => {
     if (typeof data.error === "string") {
@@ -60,12 +63,12 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
   const parseJSON = async (response: Response): Promise<ErrorResponse> => {
     const text = await response.text()
     if (!text) {
-      return {} // Return an empty object if the response body is empty
+      return {}
     }
     try {
       return JSON.parse(text)
     } catch (error) {
-      console.error("Error parsing JSON response:", error)
+      logError(new Error("Error parsing JSON response"), { error })
       return {}
     }
   }
@@ -93,11 +96,11 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
     const data: ErrorResponse = await parseJSON(response)
 
     if (!response.ok) {
-      showError(extractErrorMessage(data))
+      showError(extractErrorMessage(data), logError)
       setContextPrompt(temp)
       setServerErrors({ ...serverErrors, contextPrompt: true })
     } else {
-      showSuccess({ title: "Success", description: "Context prompt updated successfully!" })
+      showSuccess({ title: "Success", description: "Context prompt updated successfully!" }, logEvent)
       await fetchDetails().then(res => setTenant(res))
       ;(e.target as HTMLFormElement)?.reset()
     }
@@ -125,10 +128,10 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
     const data: ErrorResponse = await parseJSON(response)
 
     if (!response.ok) {
-      showError(extractErrorMessage(data))
+      showError(extractErrorMessage(data), logError)
       setServerErrors({ ...serverErrors, groups: true })
     } else {
-      showSuccess({ title: "Success", description: "Groups updated successfully!" })
+      showSuccess({ title: "Success", description: "Groups updated successfully!" }, logEvent)
       await fetchDetails().then(res => setTenant(res))
       ;(e.target as HTMLFormElement)?.reset()
     }
@@ -153,10 +156,10 @@ export const TenantDetailsForm: React.FC<PromptFormProps> = () => {
     const data: ErrorResponse = await parseJSON(response)
 
     if (!response.ok) {
-      showError(extractErrorMessage(data))
+      showError(extractErrorMessage(data), logError)
       setServerErrors({ ...serverErrors, groups: true })
     } else {
-      showSuccess({ title: "Success", description: "Group deleted successfully!" })
+      showSuccess({ title: "Success", description: "Group deleted successfully!" }, logEvent)
       setDeleteGroupId("")
       await fetchDetails().then(res => setTenant(res))
     }
